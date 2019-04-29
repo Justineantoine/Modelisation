@@ -1,0 +1,31 @@
+---
+title: "Modelling lipid physiology and energy imbalance during weight loss."
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Mathematical model
+
+This document introduces a mathematical model for the lipid physiology and energy imbalance during a great weight loss. It consists in a system of ODE :
+$$\frac{dFM}{dt} = \frac{1-p}{\rho_F}(EI-EE)$$
+$$\frac{dLM}{dt} = \frac{p}{\rho_L}(EI-EE)$$
+where FM is the fat mass, LM the lean mass, EI the energy intake and EE the energy expenditure. 
+```{r import, echo=FALSE}
+rm(list=ls())
+library(deSolve)
+
+dat <- read.table(file = "CLINICAL(copietravail).csv", sep= ',', header = TRUE)
+```
+
+## Modelling with R
+
+There are some parameters wich need to be determined from the data given by the Karolinska Institute : the energy expenditure (EE), the energy intake (EI), the difference of energy intake (dEI) and K a constant.
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
