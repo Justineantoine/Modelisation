@@ -12,9 +12,9 @@ BW1 <- dat$BW1
 BW2 <- dat$BW2
 BW5 <- dat$BW5
 
-FM0 <- dat$TBFI0
-FM2 <- dat$TBFI2
-FM5 <- dat$TBFI5
+FM0 <- dat$TBFD0
+FM2 <- dat$TBFD2
+FM5 <- dat$TBFD5
 
 adjust = subset(FM2/dat$TBFB2, is.na(FM2/dat$TBFB2)==F)
 mean_adjust = mean(adjust)
@@ -92,13 +92,7 @@ EI <- function(t, Ts, EI0, EIsurg, EIfinal) #i pour l'individu auquel on s'inter
     EIsurg
   }
   else{
-    intake = (t-Ts)*s+EIsurg
-    if (intake<EIfinal){
-      intake
-    }
-    else{
-      EIfinal
-    }
+    EIfinal
   }
 }
 
@@ -147,7 +141,8 @@ for (i in 1:41){
   
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
-  Ts[i] <- Fit$par[3]*(Fit$par[3]>=0) + 0*(Fit$par[3]<0)
+  Ts[i] <- Fit$par[3]
+  
 }
 
 ######################################

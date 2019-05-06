@@ -12,9 +12,9 @@ BW1 <- dat$BW1
 BW2 <- dat$BW2
 BW5 <- dat$BW5
 
-FM0 <- dat$TBFI0
-FM2 <- dat$TBFI2
-FM5 <- dat$TBFI5
+FM0 <- dat$TBFD0
+FM2 <- dat$TBFD2
+FM5 <- dat$TBFD5
 
 adjust = subset(FM2/dat$TBFB2, is.na(FM2/dat$TBFB2)==F)
 mean_adjust = mean(adjust)
@@ -141,7 +141,7 @@ for (i in 1:41){
     return(modCost(sol,Data))
   }
   
-  Fit <- modFit(f = modelcost, p = c(6000,9000))
+  Fit <- modFit(f = modelcost, p = c(7000,8000))
   
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
