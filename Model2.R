@@ -16,15 +16,10 @@ FM0 <- dat$TBFD0
 FM2 <- dat$TBFD2
 FM5 <- dat$TBFD5
 
-adjust = subset(FM2/dat$TBFB2, is.na(FM2/dat$TBFB2)==F)
+adjust = subset(FM0/dat$TBFB0, is.na(FM0/dat$TBFB0)==F)
 mean_adjust = mean(adjust)
 
-for (i in 1:41){
-  if (is.na(FM0[i])){
-    FM0[i] = mean_adjust*dat$TBFB0[i]
-  }
-}
-FM5[32]=mean_adjust*dat$TBFB5[32]
+FM0[18]=mean_adjust*dat$TBFB0[18]
 
 #On a BW = LM + FM
 
@@ -141,7 +136,7 @@ for (i in 1:41){
     return(modCost(sol,Data))
   }
   
-  Fit <- modFit(f = modelcost, p = c(7000,8000))
+  Fit <- modFit(f = modelcost, p = c(7500,9500))
   
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
