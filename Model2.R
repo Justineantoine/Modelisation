@@ -72,7 +72,7 @@ p5 <- C/(C+FM5)
 #########################
 # INITIAL ENERGY INTAKE #
 #########################
-EI0 <- (10*BW0 + 625*H -5*age0)*1.5*4.184
+EI0 <- (10*BW0 + 625*H -5*age0-161)*1.5*4.184
 EIsurg <- c()
 EIfinal <- c()
 
@@ -136,7 +136,7 @@ for (i in 1:41){
     return(modCost(sol,Data))
   }
   
-  Fit <- modFit(f = modelcost, p = c(7300,9300))
+  Fit <- modFit(f = modelcost, p = c(7800,10000))
   
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
@@ -172,19 +172,19 @@ for (k in 1:41){
   graphLM <- c(rep(LM0[ind], 100), bestfit[,3])
   graphBW <- c(rep(BW0[ind], 100), bestfit[,2]+bestfit[,3])
   
-  plot(graphtime, graphFM, type="l", ylim=c(0,130), xlab="Days", ylab="Weight in kg")
-  #lines(graphtime, graphBW, type = "l", lty =1, col=4)
-  #lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
+  plot(graphtime, graphFM, type="l", ylim=c(0,140), xlab="Days", ylab="Weight in kg")
+  lines(graphtime, graphBW, type = "l", lty =1, col=4)
+  lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
   points(T0[ind], FM0[ind], pch=19)
   points(T2[ind], FM2[ind], pch=19)
   points(T5[ind], FM5[ind], pch=19)
-  # points(T0[ind], BW0[ind], pch=19, col=4)
-  # points(365, BW1[ind], pch=19, col=4)
-  # points(T2[ind], BW2[ind], pch=19, col=4)
-  # points(T5[ind], BW5[ind], pch=19, col=4)
-  # points(T0[ind], LM0[ind], pch=3, col="dodgerblue4")
-  # points(T2[ind], LM2[ind], pch=3, col="dodgerblue4")
-  # points(T5[ind], LM5[ind], pch=3, col="dodgerblue4")
+  points(T0[ind], BW0[ind], pch=19, col=4)
+  points(365, BW1[ind], pch=19, col=4)
+  points(T2[ind], BW2[ind], pch=19, col=4)
+  points(T5[ind], BW5[ind], pch=19, col=4)
+  points(T0[ind], LM0[ind], pch=3, col="dodgerblue4")
+  points(T2[ind], LM2[ind], pch=3, col="dodgerblue4")
+  points(T5[ind], LM5[ind], pch=3, col="dodgerblue4")
   abline(v=S[1], lty=4, col="brown4")
   title(main= k)
   legend("bottomright", lty=c(1,1,1,4), legend=c("BW", "FM","LM", "Stable state"), col=c(4,1,"dodgerblue4","brown4"), cex=0.7)
