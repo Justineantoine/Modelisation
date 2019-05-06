@@ -1,7 +1,6 @@
 rm(list=ls())
 library(deSolve)
 library(FME)
-library(fields)
 
 dat <- read.table(file = "CLINICAL(copietravail).csv", sep= ',', header = TRUE)
  ######################################
