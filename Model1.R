@@ -78,19 +78,11 @@ p5 <- C/(C+FM5)
  # INITIAL ENERGY INTAKE #
  #########################
 EI0 <- (655 + 9.56*BW0 + 186*H -4.68*age0)*1.33*4.184
-
- ##############################
- # INITIAL ENERGY EXPENDITURE #
- ##############################
-EE0 <- EI0
 EIsurg <- c()
 EIfinal <- c()
-SE_EIsurg <- c()
-SE_EIfinal <- c()
 Ts <- c()
-SE_Ts <- c()
 Tf <- c()
-SE_Tf <- c()
+
 
 EI <- function(t, Ts, Tf, EI0, EIsurg, EIfinal) #i pour l'individu auquel on s'interesse
 {
@@ -102,6 +94,7 @@ EI <- function(t, Ts, Tf, EI0, EIsurg, EIfinal) #i pour l'individu auquel on s'i
     EIsurg
   }
   else{
+    
     intake = (t-Ts)*s+EIsurg
     if (intake<EIfinal){
       intake
@@ -111,6 +104,11 @@ EI <- function(t, Ts, Tf, EI0, EIsurg, EIfinal) #i pour l'individu auquel on s'i
     }
   }
 }
+
+ ##############################
+ # INITIAL ENERGY EXPENDITURE #
+ ##############################
+EE0 <- EI0
 
  ##############
  # K CONSTANT #
@@ -150,17 +148,12 @@ for (i in 1:41){
     return(modCost(sol,Data))
   }
   
-  Fit <- modFit(f = modelcost, p = c(6000,9000,500,1000))
+  Fit <- modFit(f = modelcost, p = c(6000,9000,500,1000), lower=c(1000, 1000, ))
   
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
   Ts[i] <- Fit$par[3]
   Tf[i] <- Fit$par[4]
-  # 
-  # SE_EIsurg[i] <- summary(Fit)$par[1,2]
-  # SE_EIfinal[i] <- summary(Fit)$par[2,2]
-  # SE_Ts <- summary(Fit)$par[3,2]
-  # SE_Tf <- summary(Fit)$par[4,2]
 }
 
 ######################################
@@ -182,7 +175,7 @@ for (k in 1:41){
     if (graphEI[i] < 1.001*graphEE[i] & graphEI[i] >0.999*graphEE[i] & i >101) {S = c(S, i-100)}
   }
   
-  plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(4000, 15000))
+  plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(3000, 15000))
   lines(graphtime, graphEE, type ="l", lty = 1, col=2)
   abline(v=S[1], lty=4, col="brown4")
   legend("bottomright",lty=c(1,1,3), cex=0.7, col=c(1,2,"brown4"), legend=c("Energy Intake rate", "Energy Expenditure rate", "Stable state"))
@@ -211,3 +204,48 @@ for (k in 1:41){
 
 }
 
+###################
+# AVERAGE PATIENT #
+###################
+
+A_age0 <- mean(age0)
+A_age2 <- mean(age2)
+A_age5 <- mean(age5)
+A_BW0 <- mean(BW0)
+A_BW2 <- mean(BW2)
+A_BW5 <- mean(BW5)
+A_FM0 <- mean(FM0)
+A_FM2 <- mean(FM2)
+A_FM5 <- mean(FM5)
+A_LM0 <- mean(LM0)
+A_LM2 <- mean(LM2)
+A_LM5 <- mean(LM5)
+A_H <- mean(H)
+A_T1 <- 0
+A_T2 <- 365
+A_T5 <- 1826
+A_d0 <- ((1-Btef)*1.5-1)*(10*A_BW0+625*A_H-5*A_age0-161)*4.184
+A_d2 <- ((1-Btef)*1.5-1)*(10*A_BW2+625*A_H-5*A_age2-161)*4.184
+A_d5 <- ((1-Btef)*1.5-1)*(10*A_BW5+625*A_H-5*A_age5-161)*4.184
+p2 <- C/(C+A_FM2) 
+p5 <- C/(C+A_FM5)
+
+A_EI0 <- (655 + 9.56*A_BW0 + 186*A_H -4.68*A_age0)*1.33*4.184
+A_EE0 <- A_EI0
+A_K <- A_EI0 - gf*A_FM0 - gl*A_LM0 - A_d0
+
+A_parameters <- c(A_EI0, A_K, A_H, A_age0)
+A_init <- c(fatmass = A_FM0,leanmass = A_LM0)
+A_Data <- data.frame(time = c(T2,T5), fatmass = c(FM2,FM5) , leanmass= c(LM2,LM5))
+
+A_modelcost <- function(P) {
+  sol <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters,P[1],P[2],P[3],P[4]))
+  return(modCost(sol,A_Data))
+}
+
+A_Fit <- modFit(f = A_modelcost, p = c(mean[],9000,500,1000))
+
+A_EIsurg <- A_Fit$par[1]
+A_EIfinal <- A_Fit$par[2]
+A_Ts <- A_Fit$par[3]
+A_Tf <- A_Fit$par[4]
