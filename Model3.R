@@ -16,15 +16,10 @@ FM0 <- dat$TBFD0
 FM2 <- dat$TBFD2
 FM5 <- dat$TBFD5
 
-adjust = subset(FM2/dat$TBFB2, is.na(FM2/dat$TBFB2)==F)
+adjust = subset(FM0/dat$TBFB0, is.na(FM0/dat$TBFB0)==F)
 mean_adjust = mean(adjust)
 
-for (i in 1:41){
-  if (is.na(FM0[i])){
-    FM0[i] = mean_adjust*dat$TBFB0[i]
-  }
-}
-FM5[32]=mean_adjust*dat$TBFB5[32]
+FM0[18]=mean_adjust*dat$TBFB0[18]
 
 #On a BW = LM + FM
 
@@ -77,7 +72,7 @@ p5 <- C/(C+FM5)
 #########################
 # INITIAL ENERGY INTAKE #
 #########################
-EI0 <- (655 + 9.56*BW0 + 186*H -4.68*age0)*1.33*4.184
+EI0 <- (10*BW0 + 625*H -5*age0)*1.5*4.184
 EIsurg <- c()
 EIfinal <- c()
 Ts <- c()
@@ -137,7 +132,7 @@ for (i in 1:41){
     return(modCost(sol,Data))
   }
   
-  Fit <- modFit(f = modelcost, p = c(6000,9000,500))
+  Fit <- modFit(f = modelcost, p = c(7300,9300,500))
   
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
@@ -192,57 +187,3 @@ for (k in 1:41){
   legend("bottomright", lty=c(1,1,1,4), legend=c("BW", "FM","LM", "Stable state"), col=c(4,1,"dodgerblue4","brown4"), cex=0.7)
   
 }
-
-###################
-# AVERAGE PATIENT #
-###################
-
-A_age0 <- mean(age0)
-A_age2 <- mean(age2)
-A_age5 <- mean(age5)
-A_BW0 <- mean(BW0)
-A_BW2 <- mean(BW2)
-A_BW5 <- mean(BW5)
-A_FM0 <- mean(FM0)
-A_FM2 <- mean(FM2)
-A_FM5 <- mean(FM5)
-A_LM0 <- mean(LM0)
-A_LM2 <- mean(LM2)
-A_LM5 <- mean(LM5)
-A_H <- mean(H)
-A_T1 <- 0
-A_T2 <- 365
-A_T5 <- 1826
-A_d0 <- ((1-Btef)*1.5-1)*(10*A_BW0+625*A_H-5*A_age0-161)*4.184
-A_d2 <- ((1-Btef)*1.5-1)*(10*A_BW2+625*A_H-5*A_age2-161)*4.184
-A_d5 <- ((1-Btef)*1.5-1)*(10*A_BW5+625*A_H-5*A_age5-161)*4.184
-p2 <- C/(C+A_FM2) 
-p5 <- C/(C+A_FM5)
-
-A_EI0 <- (655 + 9.56*A_BW0 + 186*A_H -4.68*A_age0)*1.33*4.184
-A_EE0 <- A_EI0
-A_K <- A_EI0 - gf*A_FM0 - gl*A_LM0 - A_d0
-
-A_parameters <- c(A_EI0, A_K, A_H, A_age0)
-A_init <- c(fatmass = A_FM0,leanmass = A_LM0)
-A_Data <- data.frame(time = c(T2,T5), fatmass = c(FM2,FM5) , leanmass= c(LM2,LM5))
-
-A_modelcost <- function(P) {
-  sol <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters,P[1],P[2],P[3]))
-  return(modCost(sol,A_Data))
-}
-
-A_Fit <- modFit(f = A_modelcost, p = c(mean(EIsurg),mean(EIfinal),mean(Ts)))
-
-A_EIsurg <- A_Fit$par[1]
-A_EIfinal <- A_Fit$par[2]
-A_Ts <- A_Fit$par[3]
-
-bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters, A_EIsurg, A_EIfinal, A_Ts))
-A_graphFM <- c(rep(A_FM0, 100), bestfit[,2])
-graphtime <- seq(-100,2200)
-plot(graphtime, A_graphFM, type="l", ylim=c(0,130), xlab="Days", ylab="Weight in kg")
-points(A_T1, A_FM0, pch=19)
-points(A_T2, A_FM2, pch=19)
-points(A_T5, A_FM5, pch=19)
-

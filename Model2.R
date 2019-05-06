@@ -72,7 +72,7 @@ p5 <- C/(C+FM5)
 #########################
 # INITIAL ENERGY INTAKE #
 #########################
-EI0 <- (655 + 9.56*BW0 + 186*H -4.68*age0)*1.33*4.184
+EI0 <- (10*BW0 + 625*H -5*age0)*1.5*4.184
 EIsurg <- c()
 EIfinal <- c()
 
@@ -136,7 +136,7 @@ for (i in 1:41){
     return(modCost(sol,Data))
   }
   
-  Fit <- modFit(f = modelcost, p = c(7500,9500))
+  Fit <- modFit(f = modelcost, p = c(7300,9300))
   
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
