@@ -208,27 +208,11 @@ for (k in 1:41){
 ###################
 
 A_age0 <- mean(age0)
-A_age2 <- mean(age2)
-A_age5 <- mean(age5)
 A_BW0 <- mean(BW0)
-A_BW2 <- mean(BW2)
-A_BW5 <- mean(BW5)
 A_FM0 <- mean(FM0)
-A_FM2 <- mean(FM2)
-A_FM5 <- mean(FM5)
 A_LM0 <- mean(LM0)
-A_LM2 <- mean(LM2)
-A_LM5 <- mean(LM5)
 A_H <- mean(H)
-A_T1 <- 0
-A_T2 <- 365
-A_T5 <- 1826
 A_d0 <- ((1-Btef)*1.5-1)*(10*A_BW0+625*A_H-5*A_age0-161)*4.184
-A_d2 <- ((1-Btef)*1.5-1)*(10*A_BW2+625*A_H-5*A_age2-161)*4.184
-A_d5 <- ((1-Btef)*1.5-1)*(10*A_BW5+625*A_H-5*A_age5-161)*4.184
-p2 <- C/(C+A_FM2) 
-p5 <- C/(C+A_FM5)
-
 A_EI0 <- (655 + 9.56*A_BW0 + 186*A_H -4.68*A_age0)*1.33*4.184
 A_EE0 <- A_EI0
 A_K <- A_EI0 - gf*A_FM0 - gl*A_LM0 - A_d0

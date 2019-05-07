@@ -4,9 +4,9 @@ library(FME)
 library(fields)
 
 dat <- read.table(file = "CLINICAL(copietravail).csv", sep= ',', header = TRUE)
-######################################
-# BODYWEIGHT, FAT MASS AND LEAN MASS #
-######################################
+  ######################################
+  # BODYWEIGHT, FAT MASS AND LEAN MASS #
+  ######################################
 BW0 <- dat$BW0
 BW1 <- dat$BW1
 BW2 <- dat$BW2
@@ -27,25 +27,36 @@ LM0 <- BW0-FM0
 LM2 <- BW2-FM2
 LM5 <- BW5-FM5
 
-##################
-# AGE AND HEIGHT #
-##################
+  ##################
+  # AGE AND HEIGHT #
+  ##################
 age0 <- dat$Age0
 age2 <- dat$Age2
 age5 <- dat$Age5
 H <- dat$Height
 
-########
-# TIME #
-########
+BMI0 <- dat$BMI0
+BMI1 <- dat$BMI1
+BMI2 <- dat$BMI2
+BMI5 <- dat$BMI5
+
+adjust2 = subset(BMI1-BMI2, is.na(BMI1)==F)
+mean_adjust2 = mean(adjust2)
+BMI1[9] <- BMI2[9] - mean_adjust2
+BMI1[20] <- BMI2[20] - mean_adjust2
+BMI1[21] <- BMI2[21] - mean_adjust2
+
+  ########
+  # TIME #
+  ########
 T0 <- rep(0,41)
 T2 <- dat$T2
 T1 <- T2/2
 T5 <- dat$T5
 
-##############
-# PARAMETERS #
-##############
+  ##############
+  # PARAMETERS #
+  ##############
 pf <- 39500 #kJ/kg
 pl <- 7600 #kJ/kg
 gf <- 13 #kJ/kg/day
@@ -56,22 +67,22 @@ Btef <- 0.1
 Bat <- 0.14
 C <- 10.4*pl/pf #kg
 
-#####################
-# PHYSICAL ACTIVITY #
-#####################
+  #####################
+  # PHYSICAL ACTIVITY #
+  #####################
 d0 <- ((1-Btef)*1.5-1)*(10*BW0+625*H-5*age0-161)*4.184
 d2 <- ((1-Btef)*1.5-1)*(10*BW2+625*H-5*age2-161)*4.184
 d5 <- ((1-Btef)*1.5-1)*(10*BW5+625*H-5*age5-161)*4.184
 
-#######################
-# ENERGY PARTITIONING #
-#######################
+  #######################
+  # ENERGY PARTITIONING #
+  #######################
 p2 <- C/(C+FM2) 
 p5 <- C/(C+FM5)
 
-#########################
-# INITIAL ENERGY INTAKE #
-#########################
+  #########################
+  # INITIAL ENERGY INTAKE #
+  #########################
 EI0 <- (10*BW0 + 625*H -5*age0-161)*1.5*4.184
 EIsurg <- c()
 EIfinal <- c()
@@ -89,19 +100,19 @@ EI <- function(t, EI0, EIsurg, EIfinal) #i pour l'individu auquel on s'interesse
   }
 }
 
-##############################
-# INITIAL ENERGY EXPENDITURE #
-##############################
+  ##############################
+  # INITIAL ENERGY EXPENDITURE #
+  ##############################
 EE0 <- EI0
 
-##############
-# K CONSTANT #
-##############
+  ##############
+  # K CONSTANT #
+  ##############
 K <- EI0 - gf*FM0 - gl*LM0 - d0
 
-##############
-# EDO SYSTEM #
-##############
+  ##############
+  # EDO SYSTEM #
+  ##############
 
 EqBW <- function(t, y, parameters){
   B <- Btef+Bat
@@ -136,9 +147,10 @@ for (i in 1:41){
   
 }
 
-######################################
-# PLOT FM AND BODY WEIGHT, EE AND EI #
-######################################
+  ######################################
+  # PLOT FM AND BODY WEIGHT, EE AND EI #
+  ######################################
+
 for (k in 1:41){
   ind <- k
   graphtime <- seq(-100,2200)
@@ -183,9 +195,9 @@ for (k in 1:41){
   
 }
 
-############################
-# Comparison to BW planner #
-############################
+  ############################
+  # COMPARISON TO BW PLANNER #
+  ############################
 
 ind <- 40
 dat2 <- read.table(file = "planner.csv", sep= ',', header = TRUE)
@@ -228,4 +240,46 @@ lines(soltime, graphLM, type = "l", lty =1, col="dodgerblue4")
 lines(ptime, pLM, type = "l", lty =2, col="dodgerblue4")
 legend("bottomright", lty=c(1,1,1,2,2,2), legend=c("BW", "FM","LM", "Planner BW", "Planner FM", "Planner LM"), col=c(4,1,"dodgerblue4",4,1,"dodgerblue4"), cex=0.7)
 
+  ####################
+  # AVERAGE PATIENTS #
+  ####################
 
+dBMI <- BMI0 - BMI5
+tertile<- unname(quantile(dBMI, probs = c(0.33, 0.67)))
+
+g1 <- c()
+g2 <- c()
+g3 <- c()
+
+for (i in 1:41){
+  if (dBMI[i] <= tertile[1]){
+    g1 <- c(g1, i)
+  }
+  else if (dBMI[i] <= tertile[2]){
+    g2 <- c(g2, i)
+  }
+  else {
+    g3 <- c(g3, i)
+  }
+}
+
+st_error<- function(x){
+  result <- sd(x)/sqrt(length(x))
+  result
+}
+
+
+Tg <- c(0,1,2,5)
+BMIg1 <- c(mean(BMI0[g1]), mean(BMI1[g1]), mean(BMI2[g1]), mean(BMI5[g1]))
+errg1 <- c(st_error(BMI0[g1]), st_error(BMI1[g1]), st_error(BMI2[g1]), st_error(BMI5[g1]))
+BMIg2 <- c(mean(BMI0[g2]), mean(BMI1[g2]), mean(BMI2[g2]), mean(BMI5[g2]))
+errg2 <- c(st_error(BMI0[g2]), st_error(BMI1[g2]), st_error(BMI2[g2]), st_error(BMI5[g2]))
+BMIg3 <- c(mean(BMI0[g3]), mean(BMI1[g3]), mean(BMI2[g3]), mean(BMI5[g3]))
+errg3 <- c(st_error(BMI0[g3]), st_error(BMI1[g3]), st_error(BMI2[g3]), st_error(BMI5[g3]))
+
+plot(Tg, BMIg1, type = "l", ylim=c(25, 50), xlab="Year of investigation", ylab="BMI (kg/m²)")
+plotCI(Tg, BMIg1, uiw = errg1, lwd =2, col = 1, add =T)
+lines(Tg, BMIg2, col=2)
+plotCI(Tg, BMIg2, uiw = errg2, lwd =2, col = 2, add =T)
+lines(Tg, BMIg3, col=3)
+plotCI(Tg, BMIg3, uiw = errg3, lwd =2, col = 3, add =T)
