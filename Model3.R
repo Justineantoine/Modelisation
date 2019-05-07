@@ -113,7 +113,7 @@ EqBW <- function(t, y, parameters){
   P1 <- parameters[5]
   P2 <- parameters[6]
   P3 <- parameters[7]
-  EE <- (parameters[2] + gf*y[1] + gl*y[2] + PA + parameters[1]*B + EI(t, P3, parameters[1], P1, P2)*(-B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
+  EE <- (parameters[2] + gf*y[1] + gl*y[2] + PA - parameters[1]*B + EI(t, P3, parameters[1], P1, P2)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
   
   dF <- partF/pf * (EI(t, P3, parameters[1], P1, P2) - EE)
   dL <- partL/pl * (EI(t, P3, parameters[1], P1, P2) - EE)
@@ -155,7 +155,7 @@ for (k in 1:41){
   S = c()
   for (i in 101:2301){
     graphEI[i] <- EI(graphtime[i], Ts[ind], EI0[ind], EIsurg[ind], EIfinal[ind])
-    graphEE[i] <- (K[ind] + gf*bestfit[i-100,2] + gl*bestfit[i-100,3] + ((1-Btef)*1.5-1)*4.184*(10*(bestfit[i-100,2]+bestfit[i-100,3])+625*H[ind]-5*(age0[ind]+(i-100)/365)-161) + EI0[ind]*(Bat+Btef) + EI(graphtime[i], Ts[ind], EI0[ind], EIsurg[ind], EIfinal[ind])*(-Btef -Bat + bestfit[i-100,2]/(C+bestfit[i-100,2])*nf/pf + C/(C+bestfit[i-100,2])*nl/pl))/(1 + bestfit[i-100,2]/(C+bestfit[i-100,2])*nf/pf + C/(C+bestfit[i-100,2])*nl/pl)
+    graphEE[i] <- (K[ind] + gf*bestfit[i-100,2] + gl*bestfit[i-100,3] + ((1-Btef)*1.5-1)*4.184*(10*(bestfit[i-100,2]+bestfit[i-100,3])+625*H[ind]-5*(age0[ind]+(i-100)/365)-161) - EI0[ind]*(Bat+Btef) + EI(graphtime[i], Ts[ind], EI0[ind], EIsurg[ind], EIfinal[ind])*(Btef + Bat + bestfit[i-100,2]/(C+bestfit[i-100,2])*nf/pf + C/(C+bestfit[i-100,2])*nl/pl))/(1 + bestfit[i-100,2]/(C+bestfit[i-100,2])*nf/pf + C/(C+bestfit[i-100,2])*nl/pl)
     if (graphEI[i] < 1.001*graphEE[i] & graphEI[i] >0.999*graphEE[i] & i >101) {S = c(S, i-100)}
   }
   

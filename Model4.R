@@ -187,7 +187,6 @@ for (k in 1:41){
 # Comparison to BW planner #
 ############################
 
-#Pour l'individu 40 c'est tombé comme ça
 ind <- 40
 dat2 <- read.table(file = "planner.csv", sep= ',', header = TRUE)
 ptime <- dat2$Day
