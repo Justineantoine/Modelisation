@@ -93,7 +93,7 @@ EI <- function(t, Ts, EI0, EIsurg, EIfinal) #i pour l'individu auquel on s'inter
   if (t<=0){
     EI0
   }
-  else if (t<=Ts){
+  else if (t<Ts){
     EIsurg
   }
   else{
@@ -138,6 +138,7 @@ for (i in 1:41){
   Data <- data.frame(time = c(T2[i],T5[i]), fatmass = c(FM2[i],FM5[i]) , leanmass= c(LM2[i],LM5[i]))
   
   modelcost <- function(P) {
+    soltime=c(seq(0,floor(P[3])), P[3], seq(ceiling(P[3]), 2200))
     sol <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters,P[1],P[2],P[3]))
     return(modCost(sol,Data))
   }
@@ -158,7 +159,7 @@ for (k in 1:41){
   graphtime <- seq(-100,2200)
   parameters <- c(EI0[ind], K[ind], H[ind], age0[ind], EIsurg[ind], EIfinal[ind], Ts[ind])
   init <- c(fatmass = FM0[ind],leanmass = LM0[ind])
-  bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters))
+  bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters), rtol=1e-9)
   
   graphEI= rep(EI0[ind], 100)
   graphEE = rep(EE0[ind], 100)
@@ -258,10 +259,13 @@ A1_K <- A1_EI0 - gf*A1_FM0 - gl*A1_LM0 - A1_d0
 A1_parameters <- c(A1_EI0, A1_K, A1_H, A1_age0)
 A1_init <- c(fatmass = A1_FM0,leanmass = A1_LM0)
 A1_Data <- data.frame(time = c(T2[g1],T5[g1]), fatmass = c(FM2[g1],FM5[g1]) , leanmass= c(LM2[g1],LM5[g1]))
-soltime = seq(0,2200)
+
 
 A1_modelcost <- function(P) {
-  sol <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,P[1],P[2],P[3]))
+  if (is.integer(P[3])){ soltime =seq(0,2200) }
+  else{soltime=c(seq(0,floor(P[3])), P[3], seq(ceiling(P[3]), 2200))}
+  
+  sol <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,P[1],P[2],P[3]), rtol=1e-9)
   return(modCost(sol,A1_Data))
 }
 

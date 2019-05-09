@@ -66,7 +66,7 @@ nl <- 960 #kJ/kg
 Btef <- 0.1
 Bat <- 0.14
 C <- 10.4*pl/pf #kg
-
+tau <- 14 #jours
   #####################
   # PHYSICAL ACTIVITY #
   #####################
@@ -104,6 +104,14 @@ EI <- function(t, EI0, EIsurg, EIfinal) #i pour l'individu auquel on s'interesse
   # INITIAL ENERGY EXPENDITURE #
   ##############################
 EE0 <- EI0
+EE <- function(t,EIi, EIs, EIf, k, h, a, FM, LM){
+  B <- Btef+Bat*(1-exp(-t/tau))
+  PA <- ((1-Btef)*1.5-1)*4.184*(10*(FM+LM)+625*h-5*(a+t/365)-161)
+  partF <- FM/(C+FM)
+  partL <- 1-partF
+  result <- (k + gf*FM + gl*LM + PA - EIi*B + EI(t, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
+  result
+}
 
   ##############
   # K CONSTANT #
@@ -115,18 +123,21 @@ K <- EI0 - gf*FM0 - gl*LM0 - d0
   ##############
 
 EqBW <- function(t, y, parameters){
-  B <- Btef+Bat
-  PA <- ((1-Btef)*1.5-1)*4.184*(10*(y[1]+y[2])+625*parameters[3]-5*(parameters[4]+t/365)-161)
+  
+  EIi <- parameters[1]
+  k <- parameters[2]
+  h <- parameters[3]
+  a <- parameters[4]
+  EIs <- parameters[5]
+  EIf <- parameters[6]
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
-  P1 <- parameters[5]
-  P2 <- parameters[6]
-  EE <- (parameters[2] + gf*y[1] + gl*y[2] + PA - parameters[1]*B + EI(t, parameters[1], P1, P2)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
   
-  dF <- partF/pf * (EI(t, parameters[1], P1, P2) - EE)
-  dL <- partL/pl * (EI(t, parameters[1], P1, P2) - EE)
+  dF <- partF/pf * (EI(t, EIi, EIs, EIf) - EE(t,EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dL <- partL/pl * (EI(t, EIi, EIs, EIf) - EE(t,EIi, EIs, EIf, k, h, a, y[1], y[2]))
   list(c(dF, dL))
 }
+
 
 soltime <- seq(0, 2200)
 
@@ -160,24 +171,20 @@ for (k in 1:41){
   
   graphEI= rep(EI0[ind], 100)
   graphEE = rep(EE0[ind], 100)
-  S = c()
   for (i in 101:2301){
     graphEI[i] <- EI(graphtime[i], EI0[ind], EIsurg[ind], EIfinal[ind])
-    graphEE[i] <- (K[ind] + gf*bestfit[i-100,2] + gl*bestfit[i-100,3] + ((1-Btef)*1.5-1)*4.184*(10*(bestfit[i-100,2]+bestfit[i-100,3])+625*H[ind]-5*(age0[ind]+(i-100)/365)-161) - EI0[ind]*(Bat+Btef) + EI(graphtime[i], EI0[ind], EIsurg[ind], EIfinal[ind])*(Btef + Bat + bestfit[i-100,2]/(C+bestfit[i-100,2])*nf/pf + C/(C+bestfit[i-100,2])*nl/pl))/(1 + bestfit[i-100,2]/(C+bestfit[i-100,2])*nf/pf + C/(C+bestfit[i-100,2])*nl/pl)
-    if (graphEI[i] < 1.001*graphEE[i] & graphEI[i] >0.999*graphEE[i] & i >101) {S = c(S, i-100)}
+    graphEE[i] <- EE(graphtime[i], EI0[ind], EIsurg[ind], EIfinal[ind], K[ind], H[ind], age0[ind], bestfit[i-100,2], bestfit[i-100,3])
   }
   
   plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
   lines(graphtime, graphEE, type ="l", lty = 1, col=2)
-  abline(v=S[1], lty=4, col="brown4")
-  legend("bottomright",lty=c(1,1,3), cex=0.7, col=c(1,2,"brown4"), legend=c("Energy Intake rate", "Energy Expenditure rate", "Stable state"))
-  
+  legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
   
   graphFM <- c(rep(FM0[ind], 100), bestfit[,2])
   graphLM <- c(rep(LM0[ind], 100), bestfit[,3])
   graphBW <- c(rep(BW0[ind], 100), bestfit[,2]+bestfit[,3])
   
-  plot(graphtime, graphFM, type="l", ylim=c(0,140), xlab="Days", ylab="Weight in kg")
+  plot(graphtime, graphFM, type="l", ylim=c(0,160), xlab="Days", ylab="Weight in kg")
   lines(graphtime, graphBW, type = "l", lty =1, col=4)
   lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
   points(T0[ind], FM0[ind], pch=19)
@@ -189,11 +196,11 @@ for (k in 1:41){
   points(T0[ind], LM0[ind], pch=3, col="dodgerblue4")
   points(T2[ind], LM2[ind], pch=3, col="dodgerblue4")
   points(T5[ind], LM5[ind], pch=3, col="dodgerblue4")
-  abline(v=S[1], lty=4, col="brown4")
   title(main= k)
-  legend("bottomright", lty=c(1,1,1,4), legend=c("BW", "FM","LM", "Stable state"), col=c(4,1,"dodgerblue4","brown4"), cex=0.7)
+  legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
   
 }
+
 
   ############################
   # COMPARISON TO BW PLANNER #
@@ -219,7 +226,7 @@ graphEI <- c()
 graphEE <- c()
 for (i in 1:2201){
   graphEI[i] <- EI(soltime[i], EI0[ind], pEIsurg, pEIfinal)
-  graphEE[i] <- (K[ind] + gf*bestfit[i,2] + gl*bestfit[i,3] + ((1-Btef)*1.5-1)*4.184*(10*(bestfit[i,2]+bestfit[i,3])+625*H[ind]-5*(age0[ind]+i/365)-161) - EI0[ind]*(Bat+Btef) + EI(soltime[i], EI0[ind], pEIsurg, pEIfinal)*(Btef + Bat + bestfit[i,2]/(C+bestfit[i,2])*nf/pf + C/(C+bestfit[i,2])*nl/pl))/(1 + bestfit[i,2]/(C+bestfit[i,2])*nf/pf + C/(C+bestfit[i,2])*nl/pl)
+  graphEE[i] <- EE(soltime[i], EI0[ind], EIsurg[ind], EIfinal[ind], K[ind], H[ind], age0[ind], bestfit[i,2], bestfit[i,3])
 }
 
 plot(soltime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, xlim=c(0, 500), ylim=c(1000, 15000))
