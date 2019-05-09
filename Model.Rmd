@@ -11,19 +11,160 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This document introduces a mathematical model for the lipid physiology and energy imbalance during a great weight loss. It consists in a system of ODE :
 $$\frac{dFM}{dt} = \frac{1-p}{\rho_F}(EI-EE)$$
-$$\frac{dLM}{dt} = \frac{p}{\rho_L}(EI-EE)$$
-where FM is the fat mass, LM the lean mass, EI the energy intake and EE the energy expenditure. 
+$$\frac{dLM}{dt} = \frac{p}{\rho_L}(EI-EE)$$ 
+where FM is the fat mass, LM the lean mass, EI the energy intake and EE the energy expenditure. And $$p=\frac{C}{C+F}$$
 ```{r import, echo=FALSE}
 rm(list=ls())
 library(deSolve)
+library(coda)
+library(rootSolve)
+library(FME)
 
 dat <- read.table(file = "CLINICAL(copietravail).csv", sep= ',', header = TRUE)
+  ######################################
+  # BODYWEIGHT, FAT MASS AND LEAN MASS #
+  ######################################
+BW0 <- dat$BW0
+BW1 <- dat$BW1
+BW2 <- dat$BW2
+BW5 <- dat$BW5
+
+FM0 <- dat$TBFD0
+FM2 <- dat$TBFD2
+FM5 <- dat$TBFD5
+
+adjust = subset(FM0/dat$TBFB0, is.na(FM0/dat$TBFB0)==F)
+mean_adjust = mean(adjust)
+
+FM0[18]=mean_adjust*dat$TBFB0[18]
+
+#On a BW = LM + FM
+
+LM0 <- BW0-FM0
+LM2 <- BW2-FM2
+LM5 <- BW5-FM5
+
+  ##################
+  # AGE AND HEIGHT #
+  ##################
+age0 <- dat$Age0
+age2 <- dat$Age2
+age5 <- dat$Age5
+H <- dat$Height
+
+BMI0 <- dat$BMI0
+BMI1 <- dat$BMI1
+BMI2 <- dat$BMI2
+BMI5 <- dat$BMI5
+
+adjust2 = subset(BMI1-BMI2, is.na(BMI1)==F)
+mean_adjust2 = mean(adjust2)
+BMI1[9] <- BMI2[9] - mean_adjust2
+BMI1[20] <- BMI2[20] - mean_adjust2
+BMI1[21] <- BMI2[21] - mean_adjust2
+
+  ########
+  # TIME #
+  ########
+T0 <- rep(0,41)
+T2 <- dat$T2
+T1 <- T2/2
+T5 <- dat$T5
+
+  ##############
+  # PARAMETERS #
+  ##############
+pf <- 39500 #kJ/kg
+pl <- 7600 #kJ/kg
+gf <- 13 #kJ/kg/day
+gl <- 92 #kJ/kg/day
+nf <- 750 #kJ/kg 
+nl <- 960 #kJ/kg
+Btef <- 0.1
+Bat <- 0.14
+C <- 10.4*pl/pf #kg
+tau <- 14 #jours
+  #####################
+  # PHYSICAL ACTIVITY #
+  #####################
+d0 <- ((1-Btef)*1.5-1)*(10*BW0+625*H-5*age0-161)*4.184
+d2 <- ((1-Btef)*1.5-1)*(10*BW2+625*H-5*age2-161)*4.184
+d5 <- ((1-Btef)*1.5-1)*(10*BW5+625*H-5*age5-161)*4.184
+
+  #######################
+  # ENERGY PARTITIONING #
+  #######################
+p2 <- C/(C+FM2) 
+p5 <- C/(C+FM5)
+
+  #########################
+  # INITIAL ENERGY INTAKE #
+  #########################
+EI0 <- (10*BW0 + 625*H -5*age0-161)*1.5*4.184
+EIsurg <- c()
+EIfinal <- c()
+
+EI <- function(t, EI0, EIsurg, EIfinal) #i pour l'individu auquel on s'interesse
+{
+  if (t<=0){
+    EI0
+  }
+  else if (t<=500){
+    EIsurg
+  }
+  else{
+    EIfinal
+  }
+}
+
+  ##############################
+  # INITIAL ENERGY EXPENDITURE #
+  ##############################
+EE0 <- EI0
+EE <- function(t,EIi, EIs, EIf, k, h, a, FM, LM){
+  B <- Btef+Bat*(1-exp(-t/tau))
+  PA <- ((1-Btef)*1.5-1)*4.184*(10*(FM+LM)+625*h-5*(a+t/365)-161)
+  partF <- FM/(C+FM)
+  partL <- 1-partF
+  result <- (k + gf*FM + gl*LM + PA - EIi*B + EI(t, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
+  result
+}
+
+  ##############
+  # K CONSTANT #
+  ##############
+K <- EI0 - gf*FM0 - gl*LM0 - d0
+
+  ##############
+  # EDO SYSTEM #
+  ##############
+
+EqBW <- function(t, y, parameters){
+  
+  EIi <- parameters[1]
+  k <- parameters[2]
+  h <- parameters[3]
+  a <- parameters[4]
+  EIs <- parameters[5]
+  EIf <- parameters[6]
+  partF <- y[1]/(C+y[1])
+  partL <- 1-partF
+  
+  dF <- partF/pf * (EI(t, EIi, EIs, EIf) - EE(t,EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dL <- partL/pl * (EI(t, EIi, EIs, EIf) - EE(t,EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  list(c(dF, dL))
+}
+
 ```
 
-## Modelling with R
+## Modelling the weight loss of patients
 
-There are some parameters wich need to be determined from the data given by the Karolinska Institute : the energy expenditure (EE), the energy intake (EI), the difference of energy intake (dEI) and K a constant.
-
+There are some parameters which need to be determined from the data given by the Karolinska Institute : the energy expenditure (EE), the energy intake (EI) and K a constant. Kevin D. Hall gives us a formula to estimate the energy expenditure :
+$$EE = K + \gamma_FF + \gamma_LL + \delta + TEF+AT+\eta_F\frac{dF}{dt}+\eta_L\frac{dL}{dt}$$
+$$EE = \frac{K + \gamma_FF + \gamma_LL + \delta + TEF+AT+EI(\eta_F\frac{1-p}{\rho_F}+\eta_L\frac{p}{\rho_L})}{1+\eta_F\frac{1-p}{\rho_F}+\eta_L\frac{p}{\rho_L}}$$
+TEF is the factor introducing the thermic effect of feeding and AT is the adaptive thermogenesis. Both represent the response of a sudden change of energy intake:
+$$TEF =  \beta_{TEF}\Delta EI$$
+$$AT = \beta_{TEF}\Delta EI(1-e^{-\frac{t}{\tau}})$$
 ```{r pressure, echo=FALSE}
 plot(pressure)
 ```
