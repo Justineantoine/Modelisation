@@ -1,7 +1,7 @@
 rm(list=ls())
 library(deSolve)
 library(FME)
-library(fields)
+library(plotrix)
 
 dat <- read.table(file = "CLINICAL(copietravail).csv", sep= ',', header = TRUE)
   ######################################
@@ -226,7 +226,7 @@ graphEI <- c()
 graphEE <- c()
 for (i in 1:2201){
   graphEI[i] <- EI(soltime[i], EI0[ind], pEIsurg, pEIfinal)
-  graphEE[i] <- EE(soltime[i], EI0[ind], EIsurg[ind], EIfinal[ind], K[ind], H[ind], age0[ind], bestfit[i,2], bestfit[i,3])
+  graphEE[i] <- EE(soltime[i], EI0[ind], pEIsurg, pEIfinal, K[ind], H[ind], age0[ind], bestfit[i,2], bestfit[i,3])
 }
 
 plot(soltime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, xlim=c(0, 500), ylim=c(1000, 15000))
@@ -301,7 +301,7 @@ A1_FM0 <- mean(FM0[g1])
 A1_LM0 <- mean(LM0[g1])
 A1_H <- mean(H[g1])
 A1_d0 <- ((1-Btef)*1.5-1)*(10*A1_BW0+625*A1_H-5*A1_age0-161)*4.184
-A1_EI0 <- (655 + 9.56*A1_BW0 + 186*A1_H -4.68*A1_age0)*1.33*4.184
+A1_EI0 <- (10*A1_BW0 + 625*A1_H -5*A1_age0-161)*1.5*4.184
 A1_EE0 <- A1_EI0
 A1_K <- A1_EI0 - gf*A1_FM0 - gl*A1_LM0 - A1_d0
 
@@ -315,7 +315,7 @@ A1_modelcost <- function(P) {
   return(modCost(sol,A1_Data))
 }
 
-A1_Fit <- modFit(f = A1_modelcost, p = c(mean(EIsurg[g1]),mean(EIfinal[g1])))
+A1_Fit <- modFit(f = A1_modelcost, p = c(mean(EIsurg),mean(EIfinal)))
 
 A1_EIsurg <- A1_Fit$par[1]
 A1_EIfinal <- A1_Fit$par[2]
@@ -343,7 +343,7 @@ A2_FM0 <- mean(FM0[g2])
 A2_LM0 <- mean(LM0[g2])
 A2_H <- mean(H[g2])
 A2_d0 <- ((1-Btef)*1.5-1)*(10*A2_BW0+625*A2_H-5*A2_age0-161)*4.184
-A2_EI0 <- (655 + 9.56*A2_BW0 + 186*A2_H -4.68*A2_age0)*1.33*4.184
+A2_EI0 <- (10*A2_BW0 + 625*A2_H -5*A2_age0-161)*1.5*4.184
 A2_EE0 <- A2_EI0
 A2_K <- A2_EI0 - gf*A2_FM0 - gl*A2_LM0 - A2_d0
 
@@ -357,7 +357,7 @@ A2_modelcost <- function(P) {
   return(modCost(sol,A2_Data))
 }
 
-A2_Fit <- modFit(f = A2_modelcost, p = c(mean(EIsurg[g2]),mean(EIfinal[g2])))
+A2_Fit <- modFit(f = A2_modelcost, p = c(mean(EIsurg),mean(EIfinal)))
 
 A2_EIsurg <- A2_Fit$par[1]
 A2_EIfinal <- A2_Fit$par[2]
@@ -385,7 +385,7 @@ A3_FM0 <- mean(FM0[g3])
 A3_LM0 <- mean(LM0[g3])
 A3_H <- mean(H[g3])
 A3_d0 <- ((1-Btef)*1.5-1)*(10*A3_BW0+625*A3_H-5*A3_age0-161)*4.184
-A3_EI0 <- (655 + 9.56*A3_BW0 + 186*A3_H -4.68*A3_age0)*1.33*4.184
+A3_EI0 <- (10*A3_BW0 + 625*A3_H -5*A3_age0-161)*1.5*4.184
 A3_EE0 <- A3_EI0
 A3_K <- A3_EI0 - gf*A3_FM0 - gl*A3_LM0 - A3_d0
 
@@ -399,7 +399,7 @@ A3_modelcost <- function(P) {
   return(modCost(sol,A3_Data))
 }
 
-A3_Fit <- modFit(f = A3_modelcost, p = c(mean(EIsurg[g3]),mean(EIfinal[g3])))
+A3_Fit <- modFit(f = A3_modelcost, p = c(mean(EIsurg),mean(EIfinal)))
 
 A3_EIsurg <- A3_Fit$par[1]
 A3_EIfinal <- A3_Fit$par[2]
