@@ -66,6 +66,7 @@ nl <- 960 #kJ/kg
 Btef <- 0.1
 Bat <- 0.14
 C <- 10.4*pl/pf #kg
+tau <- 14
 
 #####################
 # PHYSICAL ACTIVITY #
@@ -86,25 +87,52 @@ p5 <- C/(C+FM5)
 EI0 <- (10*BW0 + 625*H -5*age0)*1.5*4.184
 EIsurg <- c()
 EIfinal <- c()
-Ts <- c()
+Tsurg <- c()
 
-EI <- function(t, Ts, EI0, EIsurg, EIfinal) #i pour l'individu auquel on s'interesse
+EI <- function(t, Ts, EIi, EIs, EIf)
 {
   if (t<=0){
-    EI0
+    EIi
   }
   else if (t<Ts){
-    EIsurg
+    EIs
   }
   else{
-    EIfinal
+    EIf
   }
+  # s = (EIf-EIs)/(900-Ts) #garde le regime pendant 150 jours (~5 mois) puis reprise progressive de nourriture jusqu'au 900eme jour (~3 ans)
+  # if (t<=0){
+  #   EIi
+  #   
+  # }
+  # else if (t<Ts){
+  #   EIs
+  #   
+  # }
+  # else{
+  #   intake = (t-Ts)*s+EIs
+  #   if (intake<EIf){
+  #     intake
+  #   }
+  #   else{
+  #     EIf
+  #     
+  #   }
+  # }
 }
 
 ##############################
 # INITIAL ENERGY EXPENDITURE #
 ##############################
 EE0 <- EI0
+EE <- function(t, Ts, EIi, EIs, EIf, k, h, a, FM, LM){
+  B <- Btef+Bat*(1-exp(-t/tau))
+  PA <- ((1-Btef)*1.5-1)*4.184*(10*(FM+LM)+625*h-5*(a+t/365)-161)
+  partF <- FM/(C+FM)
+  partL <- 1-partF
+  result <- (k + gf*FM + gl*LM + PA - EIi*B + EI(t, Ts, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
+  result
+}
 
 ##############
 # K CONSTANT #
@@ -116,17 +144,18 @@ K <- EI0 - gf*FM0 - gl*LM0 - d0
 ##############
 
 EqBW <- function(t, y, parameters){
-  B <- Btef+Bat
-  PA <- ((1-Btef)*1.5-1)*4.184*(10*(y[1]+y[2])+625*parameters[3]-5*(parameters[4]+t/365)-161)
+  EIi <- parameters[1]
+  k <- parameters[2]
+  h <- parameters[3]
+  a <- parameters[4]
+  EIs <- parameters[5]
+  EIf <- parameters[6]
+  Ts <- parameters[7]
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
-  P1 <- parameters[5]
-  P2 <- parameters[6]
-  P3 <- parameters[7]
-  EE <- (parameters[2] + gf*y[1] + gl*y[2] + PA - parameters[1]*B + EI(t, P3, parameters[1], P1, P2)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
   
-  dF <- partF/pf * (EI(t, P3, parameters[1], P1, P2) - EE)
-  dL <- partL/pl * (EI(t, P3, parameters[1], P1, P2) - EE)
+  dF <- partF/pf * (EI(t, Ts, EIi, EIs, EIf) - EE(t, Ts, EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dL <- partL/pl * (EI(t, Ts, EIi, EIs, EIf) - EE(t, Ts, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   list(c(dF, dL))
 }
 
@@ -138,72 +167,24 @@ for (i in 1:41){
   Data <- data.frame(time = c(T2[i],T5[i]), fatmass = c(FM2[i],FM5[i]) , leanmass= c(LM2[i],LM5[i]))
   
   modelcost <- function(P) {
-    soltime=c(seq(0,floor(P[3])), P[3], seq(ceiling(P[3]), 2200))
     sol <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters,P[1],P[2],P[3]))
     return(modCost(sol,Data))
   }
   
-  Fit <- modFit(f = modelcost, p = c(7300,9300,500))
+  Fit <- modFit(f = modelcost, p = c(7300,9300,500), control=list(epsfcn=0.00001, factor=0.001), lower=c(0,0,-Inf))
   
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
-  Ts[i] <- Fit$par[3]
+  Tsurg[i] <- Fit$par[3]
   
 }
 
-######################################
-# PLOT FM AND BODY WEIGHT, EE AND EI #
-######################################
-for (k in 1:41){
-  ind <- k
-  graphtime <- seq(-100,2200)
-  parameters <- c(EI0[ind], K[ind], H[ind], age0[ind], EIsurg[ind], EIfinal[ind], Ts[ind])
-  init <- c(fatmass = FM0[ind],leanmass = LM0[ind])
-  bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters), rtol=1e-9)
-  
-  graphEI= rep(EI0[ind], 100)
-  graphEE = rep(EE0[ind], 100)
-  S = c()
-  for (i in 101:2301){
-    graphEI[i] <- EI(graphtime[i], Ts[ind], EI0[ind], EIsurg[ind], EIfinal[ind])
-    graphEE[i] <- (K[ind] + gf*bestfit[i-100,2] + gl*bestfit[i-100,3] + ((1-Btef)*1.5-1)*4.184*(10*(bestfit[i-100,2]+bestfit[i-100,3])+625*H[ind]-5*(age0[ind]+(i-100)/365)-161) - EI0[ind]*(Bat+Btef) + EI(graphtime[i], Ts[ind], EI0[ind], EIsurg[ind], EIfinal[ind])*(Btef + Bat + bestfit[i-100,2]/(C+bestfit[i-100,2])*nf/pf + C/(C+bestfit[i-100,2])*nl/pl))/(1 + bestfit[i-100,2]/(C+bestfit[i-100,2])*nf/pf + C/(C+bestfit[i-100,2])*nl/pl)
-    if (graphEI[i] < 1.001*graphEE[i] & graphEI[i] >0.999*graphEE[i] & i >101) {S = c(S, i-100)}
-  }
-  
-  plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(4000, 15000))
-  lines(graphtime, graphEE, type ="l", lty = 1, col=2)
-  abline(v=S[1], lty=4, col="brown4")
-  legend("bottomright",lty=c(1,1,3), cex=0.7, col=c(1,2,"brown4"), legend=c("Energy Intake rate", "Energy Expenditure rate", "Stable state"))
-  
-  
-  graphFM <- c(rep(FM0[ind], 100), bestfit[,2])
-  graphLM <- c(rep(LM0[ind], 100), bestfit[,3])
-  graphBW <- c(rep(BW0[ind], 100), bestfit[,2]+bestfit[,3])
-  
-  plot(graphtime, graphFM, type="l", ylim=c(0,130), xlab="Days", ylab="Weight in kg")
-  lines(graphtime, graphBW, type = "l", lty =1, col=4)
-  lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
-  points(T0[ind], FM0[ind], pch=19)
-  points(T2[ind], FM2[ind], pch=19)
-  points(T5[ind], FM5[ind], pch=19)
-  points(T0[ind], BW0[ind], pch=19, col=4)
-  points(365, BW1[ind], pch=19, col=4)
-  points(T2[ind], BW2[ind], pch=19, col=4)
-  points(T5[ind], BW5[ind], pch=19, col=4)
-  points(T0[ind], LM0[ind], pch=3, col="dodgerblue4")
-  points(T2[ind], LM2[ind], pch=3, col="dodgerblue4")
-  points(T5[ind], LM5[ind], pch=3, col="dodgerblue4")
-  abline(v=S[1], lty=4, col="brown4")
-  title(main= k)
-  legend("bottomright", lty=c(1,1,1,4), legend=c("BW", "FM","LM", "Stable state"), col=c(4,1,"dodgerblue4","brown4"), cex=0.7)
-  
-}
 
 ####################
 # AVERAGE PATIENTS #
 ####################
 
-dBMI <- BMI0 - BMI5
+dBMI <- BMI2 - BMI5
 tertile<- unname(quantile(dBMI, probs = c(0.33, 0.67)))
 
 g1 <- c()
@@ -242,6 +223,27 @@ plotCI(Tg, BMIg2, uiw = errg2, lwd =2, col = 2, add =T)
 lines(Tg, BMIg3, col=3)
 plotCI(Tg, BMIg3, uiw = errg3, lwd =2, col = 3, add =T)
 
+
+
+A_EIsurg <- A_Fit$par[1]
+A_EIfinal <- A_Fit$par[2]
+A_Ts <- A_Fit$par[3]
+A_EIsurgCI <- unname(c(A_EIsurg + summary(A_Fit)$par[1,2]*qt(0.05, 161), A_EIsurg + summary(A_Fit)$par[1,2]*qt(0.95, 161)))
+A_EIfinalCI <- unname(c(A_EIfinal + summary(A_Fit)$par[2,2]*qt(0.05, 161), A_EIfinal + summary(A_Fit)$par[2,2]*qt(0.95, 161)))
+A_TsCI <- unname(c(A_Ts + summary(A_Fit)$par[3,2]*qt(0.05, 161), A_Ts + summary(A_Fit)$par[3,2]*qt(0.95, 161)))
+A_bestfit <- lsoda(y=A_init, times=soltime, func = EqBW, parms = c(A_parameters,A_EIsurg, A_EIfinal,A_Ts))
+A_fitinf <- lsoda(y=A_init, times=soltime, func = EqBW, parms = c(A_parameters,A_EIsurgCI[1], A_EIfinalCI[1], A_TsCI[2]))
+A_fitsup <- lsoda(y=A_init, times=soltime, func = EqBW, parms = c(A_parameters,A_EIsurgCI[2], A_EIfinalCI[2], A_TsCI[1]))
+
+plot(soltime, (A_bestfit[,2]+A_bestfit[,3])/A_H^2, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50))
+lines(soltime, (A_fitinf[,2]+A_fitinf[,3])/A_H^2, type='l', lty=2)
+lines(soltime, (A_fitsup[,2]+A_fitsup[,3])/A_H^2, type='l', lty=2)
+points(T2[g1], BMI2[g1])
+points(T5[g1], BMI5[g1])
+title(main="BMI change overtime for the rebounder group")
+legend("topleft", cex=0.7, lty=c(1,2), col=c(1,1), legend=c("Mean BMI time course", "Expected inter-individual BMI variability"))
+
+
       # # # # # #
       # GROUP 1 #
       # # # # # #
@@ -252,7 +254,7 @@ A1_FM0 <- mean(FM0[g1])
 A1_LM0 <- mean(LM0[g1])
 A1_H <- mean(H[g1])
 A1_d0 <- ((1-Btef)*1.5-1)*(10*A1_BW0+625*A1_H-5*A1_age0-161)*4.184
-A1_EI0 <- (655 + 9.56*A1_BW0 + 186*A1_H -4.68*A1_age0)*1.33*4.184
+A1_EI0 <- (10*A1_BW0 + 625*A1_H -5*A1_age0-161)*1.5*4.184
 A1_EE0 <- A1_EI0
 A1_K <- A1_EI0 - gf*A1_FM0 - gl*A1_LM0 - A1_d0
 
@@ -262,14 +264,11 @@ A1_Data <- data.frame(time = c(T2[g1],T5[g1]), fatmass = c(FM2[g1],FM5[g1]) , le
 
 
 A1_modelcost <- function(P) {
-  if (is.integer(P[3])){ soltime =seq(0,2200) }
-  else{soltime=c(seq(0,floor(P[3])), P[3], seq(ceiling(P[3]), 2200))}
-  
-  sol <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,P[1],P[2],P[3]), rtol=1e-9)
+  sol <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,P[1],P[2],P[3]))
   return(modCost(sol,A1_Data))
 }
 
-A1_Fit <- modFit(f = A1_modelcost, p = c(mean(EIsurg[g1]),mean(EIfinal[g1]), mean(Ts[g1])))
+A1_Fit <- modFit(f = A1_modelcost, p = c(mean(EIsurg[g1]),mean(EIfinal[g1]), mean(Tsurg[g1])), control=list(epsfcn=0.00001, factor=0.001))
 
 A1_EIsurg <- A1_Fit$par[1]
 A1_EIfinal <- A1_Fit$par[2]
@@ -278,8 +277,8 @@ A1_EIsurgCI <- unname(c(A1_EIsurg + summary(A1_Fit)$par[1,2]*qt(0.05, 2), A1_EIs
 A1_EIfinalCI <- unname(c(A1_EIfinal + summary(A1_Fit)$par[2,2]*qt(0.05, 2), A1_EIfinal + summary(A1_Fit)$par[2,2]*qt(0.95, 2)))
 A1_TsCI <- unname(c(A1_Ts + summary(A1_Fit)$par[3,2]*qt(0.05, 2), A1_Ts + summary(A1_Fit)$par[3,2]*qt(0.95, 2)))
 A1_bestfit <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurg, A1_EIfinal,A1_Ts))
-A1_fitinf <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurgCI[1], A1_EIfinalCI[1], A1_TsCI[1]))
-A1_fitsup <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurgCI[2], A1_EIfinalCI[2], A1_TsCI[2]))
+A1_fitinf <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurgCI[1], A1_EIfinalCI[1], A1_TsCI[2]))
+A1_fitsup <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurgCI[2], A1_EIfinalCI[2], A1_TsCI[1]))
 
 plot(soltime, (A1_bestfit[,2]+A1_bestfit[,3])/A1_H^2, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50))
 lines(soltime, (A1_fitinf[,2]+A1_fitinf[,3])/A1_H^2, type='l', lty=2)
@@ -288,6 +287,8 @@ points(T2[g1], BMI2[g1])
 points(T5[g1], BMI5[g1])
 title(main="BMI change overtime for the rebounder group")
 legend("topleft", cex=0.7, lty=c(1,2), col=c(1,1), legend=c("Mean BMI time course", "Expected inter-individual BMI variability"))
+
+
 
       # # # # # #
       # GROUP 2 #
@@ -299,7 +300,7 @@ A2_FM0 <- mean(FM0[g2])
 A2_LM0 <- mean(LM0[g2])
 A2_H <- mean(H[g2])
 A2_d0 <- ((1-Btef)*1.5-1)*(10*A2_BW0+625*A2_H-5*A2_age0-161)*4.184
-A2_EI0 <- (655 + 9.56*A2_BW0 + 186*A2_H -4.68*A2_age0)*1.33*4.184
+A2_EI0 <- (10*A2_BW0 + 625*A2_H -5*A2_age0-161)*1.5*4.184
 A2_EE0 <- A2_EI0
 A2_K <- A2_EI0 - gf*A2_FM0 - gl*A2_LM0 - A2_d0
 
@@ -313,7 +314,7 @@ A2_modelcost <- function(P) {
   return(modCost(sol,A2_Data))
 }
 
-A2_Fit <- modFit(f = A2_modelcost, p = c(mean(EIsurg[g2]),mean(EIfinal[g2]), mean(Ts[g2])))
+A2_Fit <- modFit(f = A2_modelcost, p = c(mean(EIsurg[g2]),mean(EIfinal[g2]), mean(Tsurg[g2])), control=list(epsfcn=0.0001, factor=0.0001))
 
 A2_EIsurg <- A2_Fit$par[1]
 A2_EIfinal <- A2_Fit$par[2]
@@ -357,7 +358,7 @@ A3_modelcost <- function(P) {
   return(modCost(sol,A3_Data))
 }
 
-A3_Fit <- modFit(f = A3_modelcost, p = c(mean(EIsurg[g3]),mean(EIfinal[g3]), mean(Ts[g3])))
+A3_Fit <- modFit(f = A3_modelcost, p = c(mean(EIsurg[g3]),mean(EIfinal[g3]), mean(Tsurg[g3])), control=list(epsfcn=0.00001, factor=0.001))
 
 A3_EIsurg <- A3_Fit$par[1]
 A3_EIfinal <- A3_Fit$par[2]

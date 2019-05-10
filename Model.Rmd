@@ -245,6 +245,7 @@ title(main= "Bodyweight time course")
 legend("bottomright", lty=c(1,1,1), legend=c("Bodyweight", "Fatmass","Leanmass"), col=c(4,1,"dodgerblue4"), cex=0.7)
 
 ```
+## Comparison of our model to the body weight planner
 ```{r comparison, echo=FALSE}
 dat2 <- read.table(file = "planner.csv", sep= ',', header = TRUE)
 ptime <- dat2$Day
@@ -273,6 +274,7 @@ lines(ptime, pEI, lty =2)
 lines(soltime, graphEE, type ="l", lty = 1, col=2)
 lines(ptime, pEE, type ="l", lty = 2, col=2)
 legend("bottomright",lty=c(1,1,2,2), cex=0.7, col=c(1,2,1,2), legend=c("Energy Intake rate", "Energy Expenditure rate", "Planner EI", "Planner EE"))
+title(main= "Energy rates time course")
 
 graphFM <- bestfit[,2]
 graphLM <- bestfit[,3]
@@ -285,5 +287,5 @@ lines(ptime, pBW, type = "l", lty =2, col=4)
 lines(soltime, graphLM, type = "l", lty =1, col="dodgerblue4")
 lines(ptime, pLM, type = "l", lty =2, col="dodgerblue4")
 legend("bottomright", lty=c(1,1,1,2,2,2), legend=c("BW", "FM","LM", "Planner BW", "Planner FM", "Planner LM"), col=c(4,1,"dodgerblue4",4,1,"dodgerblue4"), cex=0.7)
-
+title(main= "Bodyweight time course")
 ```
