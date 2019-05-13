@@ -1,7 +1,7 @@
 rm(list=ls())
 library(deSolve)
 library(FME)
-library(fields)
+library(plotrix)
 
 dat <- read.table(file = "CLINICAL(copietravail).csv", sep= ',', header = TRUE)
 ######################################
@@ -159,32 +159,34 @@ EqBW <- function(t, y, parameters){
   list(c(dF, dL))
 }
 
-soltime <- seq(0, 2200)
+soltime <- seq(0, 2000)
 
-for (i in 1:41){
-  parameters <- c(EI0[i], K[i], H[i], age0[i])
-  init <- c(fatmass = FM0[i],leanmass = LM0[i])
-  Data <- data.frame(time = c(T2[i],T5[i]), fatmass = c(FM2[i],FM5[i]) , leanmass= c(LM2[i],LM5[i]))
-  
-  modelcost <- function(P) {
-    sol <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters,P[1],P[2],P[3]))
-    return(modCost(sol,Data))
-  }
-  
-  Fit <- modFit(f = modelcost, p = c(7300,9300,500), control=list(epsfcn=0.00001, factor=0.001), lower=c(0,0,-Inf))
-  
-  EIsurg[i] <- Fit$par[1]
-  EIfinal[i] <- Fit$par[2]
-  Tsurg[i] <- Fit$par[3]
-  
-}
+# for (i in 1:41){
+#   parameters <- c(EI0[i], K[i], H[i], age0[i])
+#   init <- c(fatmass = FM0[i],leanmass = LM0[i])
+#   Data <- data.frame(time = c(T2[i],T5[i]), fatmass = c(FM2[i],FM5[i]) , leanmass= c(LM2[i],LM5[i]))
+# 
+#   modelcost <- function(P) {
+#     sol <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters,P[1],P[2],P[3]))
+#     return(modCost(sol,Data))
+#   }
+# 
+#   Fit <- modMCMC(f = modelcost, p = c(7300,9300,500))
+#   print(summary(Fit))
+#   EIsurg[i] <- summary(Fit)$p1[1]
+#   EIfinal[i] <- summary(Fit)$p2[1]
+#   Tsurg[i] <- summary(Fit)$p3[1]
+# 
+# }
 
-
+EIsurg <- c(5885,6897,7103,7533,6188,7129,6451,3100,865,4789,9226,4285,5752,1012,6531,9446,634,1836,8634,6124,6641,9300,5636,1884,6000,9445,1449,6341,6106,5268,9101,5909,5492,79,6747,6127,3676,5206,9967,8349,13209)
+EIfinal <- c(12110,10049,11914,10421,10834,10184,8365,10863,12604,12080,11863,8507,10178,11202,9549,13434,11299,13191,10014,8782,9172,11087,12933,11773,11248,787,9550,9965,13093,11357,12141,10862,9122,12820,11513,9531,9794,14593,11286,15986,11593)
+Ts <- c(521,556,278,731,383,563,780,287,561,412,739,436,273,247,425,381,437,308,1043,895,1053,876,400,384,282,840,312,394,184,443,780,402,571,247,364,660,349,359,364,695,991)
 ####################
 # AVERAGE PATIENTS #
 ####################
 
-dBMI <- BMI2 - BMI5
+dBMI <- BMI0 - BMI5
 tertile<- unname(quantile(dBMI, probs = c(0.33, 0.67)))
 
 g1 <- c()
@@ -224,26 +226,6 @@ lines(Tg, BMIg3, col=3)
 plotCI(Tg, BMIg3, uiw = errg3, lwd =2, col = 3, add =T)
 
 
-
-A_EIsurg <- A_Fit$par[1]
-A_EIfinal <- A_Fit$par[2]
-A_Ts <- A_Fit$par[3]
-A_EIsurgCI <- unname(c(A_EIsurg + summary(A_Fit)$par[1,2]*qt(0.05, 161), A_EIsurg + summary(A_Fit)$par[1,2]*qt(0.95, 161)))
-A_EIfinalCI <- unname(c(A_EIfinal + summary(A_Fit)$par[2,2]*qt(0.05, 161), A_EIfinal + summary(A_Fit)$par[2,2]*qt(0.95, 161)))
-A_TsCI <- unname(c(A_Ts + summary(A_Fit)$par[3,2]*qt(0.05, 161), A_Ts + summary(A_Fit)$par[3,2]*qt(0.95, 161)))
-A_bestfit <- lsoda(y=A_init, times=soltime, func = EqBW, parms = c(A_parameters,A_EIsurg, A_EIfinal,A_Ts))
-A_fitinf <- lsoda(y=A_init, times=soltime, func = EqBW, parms = c(A_parameters,A_EIsurgCI[1], A_EIfinalCI[1], A_TsCI[2]))
-A_fitsup <- lsoda(y=A_init, times=soltime, func = EqBW, parms = c(A_parameters,A_EIsurgCI[2], A_EIfinalCI[2], A_TsCI[1]))
-
-plot(soltime, (A_bestfit[,2]+A_bestfit[,3])/A_H^2, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50))
-lines(soltime, (A_fitinf[,2]+A_fitinf[,3])/A_H^2, type='l', lty=2)
-lines(soltime, (A_fitsup[,2]+A_fitsup[,3])/A_H^2, type='l', lty=2)
-points(T2[g1], BMI2[g1])
-points(T5[g1], BMI5[g1])
-title(main="BMI change overtime for the rebounder group")
-legend("topleft", cex=0.7, lty=c(1,2), col=c(1,1), legend=c("Mean BMI time course", "Expected inter-individual BMI variability"))
-
-
       # # # # # #
       # GROUP 1 #
       # # # # # #
@@ -268,14 +250,17 @@ A1_modelcost <- function(P) {
   return(modCost(sol,A1_Data))
 }
 
-A1_Fit <- modFit(f = A1_modelcost, p = c(mean(EIsurg[g1]),mean(EIfinal[g1]), mean(Tsurg[g1])), control=list(epsfcn=0.00001, factor=0.001))
+A1_Fit <- modMCMC(f = A1_modelcost, p = c(mean(EIsurg[g1]),mean(EIfinal[g1]), mean(Ts[g1])))
 
-A1_EIsurg <- A1_Fit$par[1]
-A1_EIfinal <- A1_Fit$par[2]
-A1_Ts <- A1_Fit$par[3]
-A1_EIsurgCI <- unname(c(A1_EIsurg + summary(A1_Fit)$par[1,2]*qt(0.05, 2), A1_EIsurg + summary(A1_Fit)$par[1,2]*qt(0.95, 2)))
-A1_EIfinalCI <- unname(c(A1_EIfinal + summary(A1_Fit)$par[2,2]*qt(0.05, 2), A1_EIfinal + summary(A1_Fit)$par[2,2]*qt(0.95, 2)))
-A1_TsCI <- unname(c(A1_Ts + summary(A1_Fit)$par[3,2]*qt(0.05, 2), A1_Ts + summary(A1_Fit)$par[3,2]*qt(0.95, 2)))
+A1_EIsurg <- summary(A1_Fit)$p1[1]
+A1_EIsurgsd <- summary(A1_Fit)$p1[2]
+A1_EIfinal <- summary(A1_Fit)$p2[1]
+A1_EIfinalsd <- summary(A1_Fit)$p2[2]
+A1_Ts <- summary(A1_Fit)$p3[1]
+A1_Tssd <- summary(A1_Fit)$p3[2]
+A1_EIsurgCI <- unname(c(A1_EIsurg + A1_EIsurgsd*qt(0.05, 2), A1_EIsurg +A1_EIsurgsd*qt(0.95, 2)))
+A1_EIfinalCI <- unname(c(A1_EIfinal + A1_EIfinalsd*qt(0.05, 2), A1_EIfinal + A1_EIfinalsd*qt(0.95, 2)))
+A1_TsCI <- unname(c(A1_Ts + A1_Tssd*qt(0.05, 2), A1_Ts + A1_Tssd*qt(0.95, 2)))
 A1_bestfit <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurg, A1_EIfinal,A1_Ts))
 A1_fitinf <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurgCI[1], A1_EIfinalCI[1], A1_TsCI[2]))
 A1_fitsup <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurgCI[2], A1_EIfinalCI[2], A1_TsCI[1]))
@@ -314,17 +299,20 @@ A2_modelcost <- function(P) {
   return(modCost(sol,A2_Data))
 }
 
-A2_Fit <- modFit(f = A2_modelcost, p = c(mean(EIsurg[g2]),mean(EIfinal[g2]), mean(Tsurg[g2])), control=list(epsfcn=0.0001, factor=0.0001))
+A2_Fit <- modMCMC(f = A2_modelcost, p = c(mean(EIsurg[g2]),mean(EIfinal[g2]), mean(Ts[g2])))
 
-A2_EIsurg <- A2_Fit$par[1]
-A2_EIfinal <- A2_Fit$par[2]
-A2_Ts <- A2_Fit$par[3]
-A2_EIsurgCI <- unname(c(A2_EIsurg + summary(A2_Fit)$par[1,2]*qt(0.05, 2), A2_EIsurg + summary(A2_Fit)$par[1,2]*qt(0.95, 2)))
-A2_EIfinalCI <- unname(c(A2_EIfinal + summary(A2_Fit)$par[2,2]*qt(0.05, 2), A2_EIfinal + summary(A2_Fit)$par[2,2]*qt(0.95, 2)))
-A2_TsCI <- unname(c(A2_Ts + summary(A2_Fit)$par[3,2]*qt(0.05, 2), A2_Ts + summary(A2_Fit)$par[3,2]*qt(0.95, 2)))
+A2_EIsurg <- summary(A2_Fit)$p1[1]
+A2_EIsurgsd <- summary(A2_Fit)$p1[2]
+A2_EIfinal <- summary(A2_Fit)$p2[1]
+A2_EIfinalsd <- summary(A2_Fit)$p2[2]
+A2_Ts <- summary(A2_Fit)$p3[1]
+A2_Tssd <- summary(A2_Fit)$p3[2]
+A2_EIsurgCI <- unname(c(A2_EIsurg + A2_EIsurgsd*qt(0.05, 2), A2_EIsurg +A2_EIsurgsd*qt(0.95, 2)))
+A2_EIfinalCI <- unname(c(A2_EIfinal + A2_EIfinalsd*qt(0.05, 2), A2_EIfinal + A2_EIfinalsd*qt(0.95, 2)))
+A2_TsCI <- unname(c(A2_Ts + A2_Tssd*qt(0.05, 2), A2_Ts + A2_Tssd*qt(0.95, 2)))
 A2_bestfit <- lsoda(y=A2_init, times=soltime, func = EqBW, parms = c(A2_parameters,A2_EIsurg, A2_EIfinal,A2_Ts))
-A2_fitinf <- lsoda(y=A2_init, times=soltime, func = EqBW, parms = c(A2_parameters,A2_EIsurgCI[1], A2_EIfinalCI[1], A2_TsCI[1]))
-A2_fitsup <- lsoda(y=A2_init, times=soltime, func = EqBW, parms = c(A2_parameters,A2_EIsurgCI[2], A2_EIfinalCI[2], A2_TsCI[2]))
+A2_fitinf <- lsoda(y=A2_init, times=soltime, func = EqBW, parms = c(A2_parameters,A2_EIsurgCI[1], A2_EIfinalCI[1], A2_TsCI[2]))
+A2_fitsup <- lsoda(y=A2_init, times=soltime, func = EqBW, parms = c(A2_parameters,A2_EIsurgCI[2], A2_EIfinalCI[2], A2_TsCI[1]))
 
 plot(soltime, (A2_bestfit[,2]+A2_bestfit[,3])/A2_H^2, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50), col=2)
 lines(soltime, (A2_fitinf[,2]+A2_fitinf[,3])/A2_H^2, type='l', lty=2, col=2)
@@ -358,17 +346,20 @@ A3_modelcost <- function(P) {
   return(modCost(sol,A3_Data))
 }
 
-A3_Fit <- modFit(f = A3_modelcost, p = c(mean(EIsurg[g3]),mean(EIfinal[g3]), mean(Tsurg[g3])), control=list(epsfcn=0.00001, factor=0.001))
+A3_Fit <- modMCMC(f = A3_modelcost, p = c(mean(EIsurg[g3]),mean(EIfinal[g3]), mean(Ts[g3])))
 
-A3_EIsurg <- A3_Fit$par[1]
-A3_EIfinal <- A3_Fit$par[2]
-A3_Ts <- A3_Fit$par[3]
-A3_EIsurgCI <- unname(c(A3_EIsurg + summary(A3_Fit)$par[1,2]*qt(0.05, 2), A3_EIsurg + summary(A3_Fit)$par[1,2]*qt(0.95, 2)))
-A3_EIfinalCI <- unname(c(A3_EIfinal + summary(A3_Fit)$par[2,2]*qt(0.05, 2), A3_EIfinal + summary(A3_Fit)$par[2,2]*qt(0.95, 2)))
-A3_TsCI <- unname(c(A3_Ts + summary(A3_Fit)$par[3,2]*qt(0.05, 2), A3_Ts + summary(A3_Fit)$par[3,2]*qt(0.95, 2)))
+A3_EIsurg <- summary(A3_Fit)$p1[1]
+A3_EIsurgsd <- summary(A3_Fit)$p1[2]
+A3_EIfinal <- summary(A3_Fit)$p2[1]
+A3_EIfinalsd <- summary(A3_Fit)$p2[2]
+A3_Ts <- summary(A3_Fit)$p3[1]
+A3_Tssd <- summary(A3_Fit)$p3[2]
+A3_EIsurgCI <- unname(c(A3_EIsurg + A3_EIsurgsd*qt(0.05, 2), A3_EIsurg +A3_EIsurgsd*qt(0.95, 2)))
+A3_EIfinalCI <- unname(c(A3_EIfinal + A3_EIfinalsd*qt(0.05, 2), A3_EIfinal + A3_EIfinalsd*qt(0.95, 2)))
+A3_TsCI <- unname(c(A3_Ts + A3_Tssd*qt(0.05, 2), A3_Ts + A3_Tssd*qt(0.95, 2)))
 A3_bestfit <- lsoda(y=A3_init, times=soltime, func = EqBW, parms = c(A3_parameters,A3_EIsurg, A3_EIfinal,A3_Ts))
-A3_fitinf <- lsoda(y=A3_init, times=soltime, func = EqBW, parms = c(A3_parameters,A3_EIsurgCI[1], A3_EIfinalCI[1], A3_TsCI[1]))
-A3_fitsup <- lsoda(y=A3_init, times=soltime, func = EqBW, parms = c(A3_parameters,A3_EIsurgCI[2], A3_EIfinalCI[2], A3_TsCI[2]))
+A3_fitinf <- lsoda(y=A3_init, times=soltime, func = EqBW, parms = c(A3_parameters,A3_EIsurgCI[1], A3_EIfinalCI[1], A3_TsCI[2]))
+A3_fitsup <- lsoda(y=A3_init, times=soltime, func = EqBW, parms = c(A3_parameters,A3_EIsurgCI[2], A3_EIfinalCI[2], A3_TsCI[1]))
 
 plot(soltime, (A3_bestfit[,2]+A3_bestfit[,3])/A3_H^2, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50), col=3)
 lines(soltime, (A3_fitinf[,2]+A3_fitinf[,3])/A3_H^2, type='l', lty=2, col=3)
