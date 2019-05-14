@@ -289,3 +289,7 @@ lines(ptime, pLM, type = "l", lty =2, col="dodgerblue4")
 legend("bottomright", lty=c(1,1,1,2,2,2), legend=c("BW", "FM","LM", "Planner BW", "Planner FM", "Planner LM"), col=c(4,1,"dodgerblue4",4,1,"dodgerblue4"), cex=0.7)
 title(main= "Bodyweight time course")
 ```
+
+```{r average, echo=FALSE}
+
+```
