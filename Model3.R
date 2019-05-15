@@ -253,9 +253,9 @@ A1_modelcost <- function(P) {
 }
 
 P1 <- modFit(f = A1_modelcost, p =c(mean(EIsurg[gr]),mean(EIfinal[gr]), mean(Ts[gr])), control=list(epsfcn=0.1, factor=0.001))
-Covar <- summary(P1)$cov.scaled * 0.5^2/2
+Covar <- summary(P1)$cov.scaled *0.1^2/2
 
-A1_Fit <- modMCMC(f = A1_modelcost, p = P1$par, jump=Covar, lower = c(0,0,0))
+A1_Fit <- modMCMC(f = A1_modelcost, p = P1$par, jump=Covar, lower=c(0,0,-Inf), upper = c(20000,20000,5000), updatecov = 100, niter=1000)
 
 A1_EIsurg <- summary(A1_Fit)$p1[1]
 A1_EIsurgsd <- summary(A1_Fit)$p1[2]
@@ -289,7 +289,7 @@ A3_FM0 <- mean(FM0[gws])
 A3_LM0 <- mean(LM0[gws])
 A3_H <- mean(H[gws])
 A3_d0 <- ((1-Btef)*1.5-1)*(10*A3_BW0+625*A3_H-5*A3_age0-161)*4.184
-A3_EI0 <- (655 + 9.56*A3_BW0 + 186*A3_H -4.68*A3_age0)*1.33*4.184
+A3_EI0 <- (10*A3_BW0 + 625*A3_H -5*A3_age0-161)*1.5*4.184
 A3_EE0 <- A3_EI0
 A3_K <- A3_EI0 - gf*A3_FM0 - gl*A3_LM0 - A3_d0
 
