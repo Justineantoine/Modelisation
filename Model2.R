@@ -397,12 +397,12 @@ legend("topleft", cex=0.7, lty=c(1,2), col=c(3,3), legend=c("Mean BMI time cours
 EE2 <- c()
 EE5 <- c()
 for (i in 1:41){
-  EE2[i] <- EE(T2[i], EI0[i], EIsurg[i], EIfinal[i], K[i], H[i], age2[i], FM2[i], LM2[i])
-  EE5[i] <- EE(T5[i], EI0[i], EIsurg[i], EIfinal[i], K[i], H[i], age5[i], FM5[i], LM5[i])
+  EE2[i] <- EE0[i] - EE(T2[i], EI0[i], EIsurg[i], EIfinal[i], K[i], H[i], age2[i], FM2[i], LM2[i])
+  EE5[i] <- EE0[i] - EE(T5[i], EI0[i], EIsurg[i], EIfinal[i], K[i], H[i], age5[i], FM5[i], LM5[i])
 }
-cordat <- matrix(c(EE0, EE2, EE5, LA0, LA2, LA5), nrow=41, ncol=6, byrow=F)
+
+cordat <- matrix(c(EE0, EE2, EE5, LA0, LA0-LA2, LA0-LA5), nrow = 41, ncol= 6, byrow=F)
 colnames(cordat) <- c("EE0", "EE2", "EE5","LA0", "LA2", "LA5")
 mcor <- rcorr(cordat)$r[1:3,4:6]
 corrplot(mcor, type="upper", order="hclust", tl.col="black", tl.srt=45)
 pairs(cordat)
-
