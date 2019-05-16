@@ -99,14 +99,14 @@ EI0 <- (10*BW0 + 625*H -5*age0-161)*1.5*4.184
 EIsurg <- c()
 EIfinal <- c()
 
-EI <- function(t, EIi, EIs, EIf) #i pour l'individu auquel on s'interesse
+EI <- function(t, Ts, Tf, EIi, EIs, EIf) #i pour l'individu auquel on s'interesse
 {
-  s = (EIf-EIs)/(900-500) #garde le regime pendant 150 jours (~5 mois) puis reprise progressive de nourriture jusqu'au 900eme jour (~3 ans)
+  s = (EIf-EIs)/(Tf-Ts) #garde le regime pendant 150 jours (~5 mois) puis reprise progressive de nourriture jusqu'au 900eme jour (~3 ans)
   if (t<=0){
     EIi
     
   }
-  else if (t<=500){
+  else if (t<=Ts){
     EIs
     
   }
@@ -127,12 +127,12 @@ EI <- function(t, EIi, EIs, EIf) #i pour l'individu auquel on s'interesse
 ##############################
 EE0 <- EI0
 
-EE <- function(t,EIi, EIs, EIf, k, h, a, FM, LM){
+EE <- function(t, Ts, Tf, EIi, EIs, EIf, k, h, a, FM, LM){
   B <- Btef+Bat*(1-exp(-t/tau))
   PA <- ((1-Btef)*1.5-1)*4.184*(10*(FM+LM)+625*h-5*(a+t/365)-161)
   partF <- FM/(C+FM)
   partL <- 1-partF
-  result <- (k + gf*FM + gl*LM + PA - EIi*B + EI(t, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
+  result <- (k + gf*FM + gl*LM + PA - EIi*B + EI(t, Ts, Tf, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
   result
   }
 
@@ -151,20 +151,22 @@ EqBW <- function(t, y, parameters){
   k <- parameters[2]
   h <- parameters[3]
   a <- parameters[4]
-  EIs <- parameters[5]
-  EIf <- parameters[6]
+  Ts <- parameters[5]
+  Tf <- parameters[6]
+  EIs <- parameters[7]
+  EIf <- parameters[8]
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
   
-  dF <- partF/pf * (EI(t, EIi, EIs, EIf) - EE(t,EIi, EIs, EIf, k, h, a, y[1], y[2]))
-  dL <- partL/pl * (EI(t, EIi, EIs, EIf) - EE(t,EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dF <- partF/pf * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dL <- partL/pl * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   list(c(dF, dL))
 }
 
 soltime <- seq(0, 2200)
 
 for (i in 1:41){
-  parameters <- c(EI0[i], K[i], H[i], age0[i])
+  parameters <- c(EI0[i], K[i], H[i], age0[i], 500, 900)
   init <- c(fatmass = FM0[i],leanmass = LM0[i])
   Data <- data.frame(time = c(T2[i],T5[i]), fatmass = c(FM2[i],FM5[i]) , leanmass= c(LM2[i],LM5[i]))
   
@@ -279,7 +281,7 @@ A1_EI0 <- (655 + 9.56*A1_BW0 + 186*A1_H -4.68*A1_age0)*1.33*4.184
 A1_EE0 <- A1_EI0
 A1_K <- A1_EI0 - gf*A1_FM0 - gl*A1_LM0 - A1_d0
 
-A1_parameters <- c(A1_EI0, A1_K, A1_H, A1_age0)
+A1_parameters <- c(A1_EI0, A1_K, A1_H, A1_age0, 380, 1500)
 A1_init <- c(fatmass = A1_FM0,leanmass = A1_LM0)
 A1_Data <- data.frame(time = c(T2[g1],T5[g1]), fatmass = c(FM2[g1],FM5[g1]) , leanmass= c(LM2[g1],LM5[g1]))
 soltime = seq(0,2200)
@@ -321,7 +323,7 @@ A2_EI0 <- (655 + 9.56*A2_BW0 + 186*A2_H -4.68*A2_age0)*1.33*4.184
 A2_EE0 <- A2_EI0
 A2_K <- A2_EI0 - gf*A2_FM0 - gl*A2_LM0 - A2_d0
 
-A2_parameters <- c(A2_EI0, A2_K, A2_H, A2_age0)
+A2_parameters <- c(A2_EI0, A2_K, A2_H, A2_age0, 400, 1500)
 A2_init <- c(fatmass = A2_FM0,leanmass = A2_LM0)
 A2_Data <- data.frame(time = c(T2[g2],T5[g2]), fatmass = c(FM2[g2],FM5[g2]) , leanmass= c(LM2[g2],LM5[g2]))
 soltime = seq(0,2200)
@@ -363,7 +365,7 @@ A3_EI0 <- (655 + 9.56*A3_BW0 + 186*A3_H -4.68*A3_age0)*1.33*4.184
 A3_EE0 <- A3_EI0
 A3_K <- A3_EI0 - gf*A3_FM0 - gl*A3_LM0 - A3_d0
 
-A3_parameters <- c(A3_EI0, A3_K, A3_H, A3_age0)
+A3_parameters <- c(A3_EI0, A3_K, A3_H, A3_age0, 676, 900)
 A3_init <- c(fatmass = A3_FM0,leanmass = A3_LM0)
 A3_Data <- data.frame(time = c(T2[g3],T5[g3]), fatmass = c(FM2[g3],FM5[g3]) , leanmass= c(LM2[g3],LM5[g3]))
 soltime = seq(0,2200)
@@ -390,6 +392,49 @@ points(T2[g3], BMI2[g3], col=3)
 points(T5[g3], BMI5[g3], col=3)
 title(main="BMI change overtime for the second weight stable group")
 legend("topleft", cex=0.7, lty=c(1,2), col=c(3,3), legend=c("Mean BMI time course", "Expected inter-individual BMI variability"))
+
+
+    # # # # # #
+    # GROUP 4 #
+    # # # # # #
+gr <- c(g1,g2)
+GR_age0 <- mean(age0[gr])
+GR_BW0 <- mean(BW0[gr])
+GR_FM0 <- mean(FM0[gr])
+GR_LM0 <- mean(LM0[gr])
+GR_H <- mean(H[gr])
+GR_d0 <- ((1-Btef)*1.5-1)*(10*GR_BW0+625*GR_H-5*GR_age0-161)*4.184
+GR_EI0 <- (655 + 9.56*GR_BW0 + 186*GR_H -4.68*GR_age0)*1.33*4.184
+GR_EE0 <- GR_EI0
+GR_K <- GR_EI0 - gf*GR_FM0 - gl*GR_LM0 - GR_d0
+
+GR_parameters <- c(GR_EI0, GR_K, GR_H, GR_age0, 380, 1500)
+GR_init <- c(fatmass = GR_FM0,leanmass = GR_LM0)
+GR_Data <- data.frame(time = c(T2[gr],T5[gr]), fatmass = c(FM2[gr],FM5[gr]) , leanmass= c(LM2[gr],LM5[gr]))
+soltime = seq(0,2200)
+
+GR_modelcost <- function(P) {
+  sol <- lsoda(y=GR_init, times=soltime, func = EqBW, parms = c(GR_parameters,P[1],P[2]))
+  return(modCost(sol,GR_Data))
+}
+
+GR_Fit <- modFit(f = GR_modelcost,p = c(mean(EIsurg[gr]),mean(EIfinal[gr])))
+
+GR_EIsurg <- GR_Fit$par[1]
+GR_EIfinal <- GR_Fit$par[2]
+GR_EIsurgCI <- unname(c(GR_EIsurg + summary(GR_Fit)$par[1,2]*qt(0.05, GR_Fit$df.residual), GR_EIsurg + summary(GR_Fit)$par[1,2]*qt(0.95, GR_Fit$df.residual)))
+GR_EIfinalCI <- unname(c(GR_EIfinal + summary(GR_Fit)$par[2,2]*qt(0.05, GR_Fit$df.residual), GR_EIfinal + summary(GR_Fit)$par[2,2]*qt(0.95, GR_Fit$df.residual)))
+GR_bestfit <- lsoda(y=GR_init, times=soltime, func = EqBW, parms = c(GR_parameters,GR_EIsurg, GR_EIfinal))
+GR_fitinf <- lsoda(y=GR_init, times=soltime, func = EqBW, parms = c(GR_parameters,GR_EIsurgCI[1], GR_EIfinalCI[1]))
+GR_fitsup <- lsoda(y=GR_init, times=soltime, func = EqBW, parms = c(GR_parameters,GR_EIsurgCI[2], GR_EIfinalCI[2]))
+
+plot(soltime, (GR_bestfit[,2]+GR_bestfit[,3])/GR_H^2, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50))
+lines(soltime, (GR_fitinf[,2]+GR_fitinf[,3])/GR_H^2, type='l', lty=2)
+lines(soltime, (GR_fitsup[,2]+GR_fitsup[,3])/GR_H^2, type='l', lty=2)
+points(T2[gr], BMI2[gr])
+points(T5[gr], BMI5[gr])
+title(main="BMI change overtime for the rebounder group")
+legend("topleft", cex=0.7, lty=c(1,2), col=c(1,1), legend=c("Mean BMI time course", "Expected inter-individual BMI variability"))
 
 ####################
 # CORRELATION TEST #

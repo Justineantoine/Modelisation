@@ -253,8 +253,8 @@ A1_modelcost <- function(P) {
 P1 <- modFit(f = A1_modelcost, p =c(mean(EIsurg[gr]),mean(EIfinal[gr]), mean(Ts[gr])), control=list(epsfcn=0.1, factor=0.001))
 #Covar <- summary(P1)$cov.scaled *0.1^2/3
 
-Covar <- c(0.1, 0.01, 0.1)
-A1_Fit <- modMCMC(f = A1_modelcost, p = P1$par, jump=Covar, lower=c(0,0,-Inf), upper = c(20000,20000,5000), updatecov = 100, niter=20000)
+Covar1 <- c(0.1, 0.01, 0.1)
+A1_Fit <- modMCMC(f = A1_modelcost, p = P1$par, jump=Covar1, lower=c(0,0,-Inf), upper = c(20000,20000,5000), updatecov = 100, niter=20000)
 
 A1_EIsurg <- summary(A1_Fit)$p1[1]
 A1_EIsurgsd <- summary(A1_Fit)$p1[2]
@@ -305,8 +305,8 @@ A3_modelcost <- function(P) {
 P3 <- modFit(f = A3_modelcost, p =c(mean(EIsurg[gws]),mean(EIfinal[gws]), mean(Ts[gws])), control=list(epsfcn=0.3, factor=0.003))
 #Covar <- summary(P3)$cov.scaled *0.3^2/3
 
-Covar <- c(0.1, 0.01, 0.1)
-A3_Fit <- modMCMC(f = A3_modelcost, p = P3$par, jump=Covar, lower=c(0,0,-Inf), upper = c(20000,20000,5000), updatecov = 300, niter=20000)
+Covar3 <- c(0.1, 0.01, 0.1)
+A3_Fit <- modMCMC(f = A3_modelcost, p = P3$par, jump=Covar3, lower=c(0,0,-Inf), upper = c(20000,20000,5000), updatecov = 300, niter=20000)
 
 A3_EIsurg <- summary(A3_Fit)$p1[1]
 A3_EIsurgsd <- summary(A3_Fit)$p1[2]
