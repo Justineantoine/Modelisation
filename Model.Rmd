@@ -20,6 +20,7 @@ library(deSolve)
 library(coda)
 library(rootSolve)
 library(FME)
+library(plotrix)
 
 dat <- read.table(file = "CLINICAL(copietravail).csv", sep= ',', header = TRUE)
   ######################################
@@ -119,41 +120,71 @@ Thus the constant K can be determined.
   # INITIAL ENERGY INTAKE #
   #########################
 EI0 <- (10*BW0 + 625*H -5*age0-161)*1.5*4.184
-EIsurg <- c()
-EIfinal <- c()
 
-EI <- function(t, EI0, EIsurg, EIfinal)
+EI1 <- function(t, Ts, Tf, EIi, EIs, EIf)
 {
+  s = (EIf-EIs)/(Tf-Ts) #garde le regime pendant 150 jours (~5 mois) puis reprise progressive de nourriture jusqu'au 900eme jour (~3 ans)
   if (t<=0){
-    EI0
+    EIi
+    
   }
-  else if (t<=500){
-    EIsurg
+  else if (t<=Ts){
+    EIs
+    
   }
   else{
-    EIfinal
+    intake = (t-500)*s+EIs
+    if (intake<EIf){
+      intake
+    }
+    else{
+      EIf
+      
+    }
   }
 }
 
+EI2 <- function(t, Ts, EIi, EIs, EIf)
+{
+  if (t<=0){
+    EIi
+    
+  }
+  else if (t<=Ts){
+    EIs
+    
+  }
+  else{
+     EIf
+  }
+}
   ##############################
   # INITIAL ENERGY EXPENDITURE #
   ##############################
 EE0 <- EI0
-EE <- function(t,EIi, EIs, EIf, k, h, a, FM, LM){
+
+EE1 <- function(t, Ts, Tf, EIi, EIs, EIf, k, h, a, FM, LM){
   B <- Btef+Bat*(1-exp(-t/tau))
   PA <- ((1-Btef)*1.5-1)*4.184*(10*(FM+LM)+625*h-5*(a+t/365)-161)
   partF <- FM/(C+FM)
   partL <- 1-partF
-  result <- (k + gf*FM + gl*LM + PA - EIi*B + EI(t, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
+  result <- (k + gf*FM + gl*LM + PA - EIi*B + EI1(t, Ts, Tf, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
   result
 }
+
+EE2 <- function(t, Ts, EIi, EIs, EIf, k, h, a, FM, LM){
+  B <- Btef+Bat*(1-exp(-t/tau))
+  PA <- ((1-Btef)*1.5-1)*4.184*(10*(FM+LM)+625*h-5*(a+t/365)-161)
+  partF <- FM/(C+FM)
+  partL <- 1-partF
+  result <- (k + gf*FM + gl*LM + PA - EIi*B + EI2(t, Ts, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
+  result
+  }
 
   ##############
   # K CONSTANT #
   ##############
 K <- EI0 - gf*FM0 - gl*LM0 - d0
-
-
 
 ```
 
@@ -162,35 +193,54 @@ K <- EI0 - gf*FM0 - gl*LM0 - d0
   # EDO SYSTEM #
   ##############
 
-EqBW <- function(t, y, parameters){
-  
+EqBW1 <- function(t, y, parameters){
+
   EIi <- parameters[1]
   k <- parameters[2]
   h <- parameters[3]
   a <- parameters[4]
-  EIs <- parameters[5]
-  EIf <- parameters[6]
+  Ts <- parameters[5]
+  Tf <- parameters[6]
+  EIs <- parameters[7]
+  EIf <- parameters[8]
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
   
-  dF <- partF/pf * (EI(t, EIi, EIs, EIf) - EE(t,EIi, EIs, EIf, k, h, a, y[1], y[2]))
-  dL <- partL/pl * (EI(t, EIi, EIs, EIf) - EE(t,EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dF <- partF/pf * (EI1(t, Ts, Tf, EIi, EIs, EIf) - EE1(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dL <- partL/pl * (EI1(t, Ts, Tf, EIi, EIs, EIf) - EE1(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  list(c(dF, dL))
+}
+
+EqBW2 <- function(t, y, parameters){
+
+  EIi <- parameters[1]
+  k <- parameters[2]
+  h <- parameters[3]
+  a <- parameters[4]
+  Ts <- parameters[5]
+  EIs <- parameters[6]
+  EIf <- parameters[7]
+  partF <- y[1]/(C+y[1])
+  partL <- 1-partF
+  
+  dF <- partF/pf * (EI2(t, Ts, EIi, EIs, EIf) - EE2(t, Ts, EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dL <- partL/pl * (EI2(t, Ts, EIi, EIs, EIf) - EE2(t, Ts, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   list(c(dF, dL))
 }
 
 ```
-
+Now, the idea is to solve the model equations for each patients. We can then plot the results for both energy rates and bodyweight. This is an example for one patient in the cohort.
 ```{r individual graph, echo=FALSE}
   ########################
   # SOLVE FOR PATIENT 40 #
   ########################
 soltime <- seq(0,2200)
-parameters <- c(EI0[40], K[40], H[40], age0[40])
+parameters <- c(EI0[40], K[40], H[40], age0[40], 500,900)
 init <- c(fatmass = FM0[40],leanmass = LM0[40])
 Data <- data.frame(time = c(T2[40],T5[40]), fatmass = c(FM2[40],FM5[40]) , leanmass= c(LM2[40],LM5[40]))
 
 modelcost <- function(P) {
-  sol <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters,P[1],P[2]))
+  sol <- lsoda(y=init, times=soltime, func = EqBW1, parms = c(parameters,P[1],P[2]))
   return(modCost(sol,Data))
 }
 
@@ -199,9 +249,9 @@ Fit <- modFit(f = modelcost, p = c(7800,10000))
 EIsurg <- Fit$par[1]
 EIfinal <- Fit$par[2]
   
-parameters <- c(EI0[40], K[40], H[40], age0[40], EIsurg, EIfinal)
+parameters <- c(EI0[40], K[40], H[40], age0[40], 500, 900, EIsurg, EIfinal)
 init <- c(fatmass = FM0[40],leanmass = LM0[40])
-bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters))
+bestfit <- lsoda(y=init, times=soltime, func = EqBW1, parms = c(parameters))
 
   #####################
   # ENERGY RATE GRAPH #
@@ -211,8 +261,8 @@ graphtime <- seq(-100,2200)
 graphEI= rep(EI0[40], 100)
 graphEE = rep(EE0[40], 100)
 for (i in 101:2301){
-  graphEI[i] <- EI(graphtime[i], EI0[40], EIsurg, EIfinal)
-  graphEE[i] <- EE(graphtime[i], EI0[40], EIsurg, EIfinal, K[40], H[40], age0[40], bestfit[i-100,2], bestfit[i-100,3])
+  graphEI[i] <- EI1(graphtime[i], 500, 900, EI0[40], EIsurg, EIfinal)
+  graphEE[i] <- EE1(graphtime[i], 500, 900, EI0[40], EIsurg, EIfinal, K[40], H[40], age0[40], bestfit[i-100,2], bestfit[i-100,3])
 }
 
 plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
@@ -243,9 +293,11 @@ points(T2[40], LM2[40], pch=3, col="dodgerblue4")
 points(T5[40], LM5[40], pch=3, col="dodgerblue4")
 title(main= "Bodyweight time course")
 legend("bottomright", lty=c(1,1,1), legend=c("Bodyweight", "Fatmass","Leanmass"), col=c(4,1,"dodgerblue4"), cex=0.7)
-
 ```
+
 ## Comparison of our model to the body weight planner
+In his paper, Kevin D. Hall mentions the web application, body weight planner, which consists in predict the energy intake during a period given the goal (time and weight goal). This application is based on the same equations we used for our model. To confirm our model, we decided to compare it to the application results by using the energy intake rates given to lose 40 kg in 500 days.
+
 ```{r comparison, echo=FALSE}
 dat2 <- read.table(file = "planner.csv", sep= ',', header = TRUE)
 ptime <- dat2$Day
@@ -258,20 +310,20 @@ pEIsurg <- pEI[1]
 pEIfinal <- pEI[length(pEI)]
 
 soltime <- seq(0,2200)
-parameters <- c(EI0[40], K[40], H[40], age0[40], pEIsurg, pEIfinal)
+parameters <- c(EI0[40], K[40], H[40], age0[40], 500, pEIsurg, pEIfinal)
 init <- c(fatmass = FM0[40],leanmass = LM0[40])
-bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters))
+bestfit <- lsoda(y=init, times=soltime, func = EqBW2, parms = c(parameters))
 
-graphEI <- c()
-graphEE <- c()
+graphEIc <- c()
+graphEEc <- c()
 for (i in 1:2201){
-  graphEI[i] <- EI(soltime[i], EI0[40], pEIsurg, pEIfinal)
-  graphEE[i] <- EE(soltime[i], EI0[40], pEIsurg, pEIfinal, K[40], H[40], age0[40], bestfit[i,2], bestfit[i,3])
+  graphEIc[i] <- EI2(soltime[i], 500, EI0[40], pEIsurg, pEIfinal)
+  graphEEc[i] <- EE2(soltime[i], 500, EI0[40], pEIsurg, pEIfinal, K[40], H[40], age0[40], bestfit[i,2], bestfit[i,3])
 }
 
-plot(soltime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, xlim=c(0, 500), ylim=c(1000, 15000))
+plot(soltime, graphEIc, type="l", xlab="Days", ylab="Energy rate ", col=1, xlim=c(0, 500), ylim=c(1000, 15000))
 lines(ptime, pEI, lty =2)
-lines(soltime, graphEE, type ="l", lty = 1, col=2)
+lines(soltime, graphEEc, type ="l", lty = 1, col=2)
 lines(ptime, pEE, type ="l", lty = 2, col=2)
 legend("bottomright",lty=c(1,1,2,2), cex=0.7, col=c(1,2,1,2), legend=c("Energy Intake rate", "Energy Expenditure rate", "Planner EI", "Planner EE"))
 title(main= "Energy rates time course")
@@ -289,7 +341,170 @@ lines(ptime, pLM, type = "l", lty =2, col="dodgerblue4")
 legend("bottomright", lty=c(1,1,1,2,2,2), legend=c("BW", "FM","LM", "Planner BW", "Planner FM", "Planner LM"), col=c(4,1,"dodgerblue4",4,1,"dodgerblue4"), cex=0.7)
 title(main= "Bodyweight time course")
 ```
-
+## Average patients
 ```{r average, echo=FALSE}
+dBMI <- BMI0 - BMI5
+tertile<- unname(quantile(dBMI, probs = c(0.33, 0.67)))
+
+g1 <- c()
+g2 <- c()
+g3 <- c()
+
+for (i in 1:41){
+  if (dBMI[i] <= tertile[1]){
+    g1 <- c(g1, i)
+  }
+  else if (dBMI[i] <= tertile[2]){
+    g2 <- c(g2, i)
+  }
+  else {
+    g3 <- c(g3, i)
+  }
+}
+
+st_error<- function(x){
+  result <- sd(x)/sqrt(length(x))
+  result
+}
+
+Tg <- c(0,1,2,5)
+BMIg1 <- c(mean(BMI0[g1]), mean(BMI1[g1]), mean(BMI2[g1]), mean(BMI5[g1]))
+errg1 <- c(st_error(BMI0[g1]), st_error(BMI1[g1]), st_error(BMI2[g1]), st_error(BMI5[g1]))
+BMIg2 <- c(mean(BMI0[g2]), mean(BMI1[g2]), mean(BMI2[g2]), mean(BMI5[g2]))
+errg2 <- c(st_error(BMI0[g2]), st_error(BMI1[g2]), st_error(BMI2[g2]), st_error(BMI5[g2]))
+BMIg3 <- c(mean(BMI0[g3]), mean(BMI1[g3]), mean(BMI2[g3]), mean(BMI5[g3]))
+errg3 <- c(st_error(BMI0[g3]), st_error(BMI1[g3]), st_error(BMI2[g3]), st_error(BMI5[g3]))
+
+plot(Tg, BMIg1, type = "l", ylim=c(25, 50), xlab="Year of investigation", ylab="BMI (kg/m²)")
+plotCI(Tg, BMIg1, uiw = errg1, lwd =2, col = 1, add =T)
+lines(Tg, BMIg2, col=2)
+plotCI(Tg, BMIg2, uiw = errg2, lwd =2, col = 2, add =T)
+lines(Tg, BMIg3, col=3)
+plotCI(Tg, BMIg3, uiw = errg3, lwd =2, col = 3, add =T)
+
+  # # # # # #
+  # GROUP 1 #
+  # # # # # #
+A1_age0 <- mean(age0[g1])
+A1_BW0 <- mean(BW0[g1])
+A1_FM0 <- mean(FM0[g1])
+A1_LM0 <- mean(LM0[g1])
+A1_H <- mean(H[g1])
+A1_d0 <- ((1-Btef)*1.5-1)*(10*A1_BW0+625*A1_H-5*A1_age0-161)*4.184
+A1_EI0 <- (10*A1_BW0 + 625*A1_H -5*A1_age0-161)*1.5*4.184
+A1_EE0 <- A1_EI0
+A1_K <- A1_EI0 - gf*A1_FM0 - gl*A1_LM0 - A1_d0
+
+A1_parameters <- c(A1_EI0, A1_K, A1_H, A1_age0, 380, 1500)
+A1_init <- c(fatmass = A1_FM0,leanmass = A1_LM0)
+A1_Data <- data.frame(time = c(T2[g1],T5[g1]), fatmass = c(FM2[g1],FM5[g1]) , leanmass= c(LM2[g1],LM5[g1]))
+soltime = seq(0,2200)
+
+A1_modelcost <- function(P) {
+  sol <- lsoda(y=A1_init, times=soltime, func = EqBW1, parms = c(A1_parameters,P[1],P[2]))
+  return(modCost(sol,A1_Data))
+}
+
+A1_Fit <- modFit(f = A1_modelcost, p = c(8264.651, 11224.78))
+
+A1_EIsurg <- A1_Fit$par[1]
+A1_EIfinal <- A1_Fit$par[2]
+A1_EIsurgCI <- unname(c(A1_EIsurg + summary(A1_Fit)$par[1,2]*qt(0.05, 2), A1_EIsurg + summary(A1_Fit)$par[1,2]*qt(0.95, 2)))
+A1_EIfinalCI <- unname(c(A1_EIfinal + summary(A1_Fit)$par[2,2]*qt(0.05, 2), A1_EIfinal + summary(A1_Fit)$par[2,2]*qt(0.95, 2)))
+A1_bestfit <- lsoda(y=A1_init, times=soltime, func = EqBW1, parms = c(A1_parameters,A1_EIsurg, A1_EIfinal))
+A1_fitinf <- lsoda(y=A1_init, times=soltime, func = EqBW1, parms = c(A1_parameters,A1_EIsurgCI[1], A1_EIfinalCI[1]))
+A1_fitsup <- lsoda(y=A1_init, times=soltime, func = EqBW1, parms = c(A1_parameters,A1_EIsurgCI[2], A1_EIfinalCI[2]))
+
+plot(soltime, (A1_bestfit[,2]+A1_bestfit[,3])/A1_H^2, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50))
+lines(soltime, (A1_fitinf[,2]+A1_fitinf[,3])/A1_H^2, type='l', lty=2)
+lines(soltime, (A1_fitsup[,2]+A1_fitsup[,3])/A1_H^2, type='l', lty=2)
+points(T2[g1], BMI2[g1])
+points(T5[g1], BMI5[g1])
+title(main="BMI change overtime for the rebounder group")
+legend("topleft", cex=0.7, lty=c(1,2), col=c(1,1), legend=c("Mean BMI time course", "Expected inter-individual BMI variability"))
+
+# # # # # #
+# GROUP 2 #
+# # # # # #
+
+A2_age0 <- mean(age0[g2])
+A2_BW0 <- mean(BW0[g2])
+A2_FM0 <- mean(FM0[g2])
+A2_LM0 <- mean(LM0[g2])
+A2_H <- mean(H[g2])
+A2_d0 <- ((1-Btef)*1.5-1)*(10*A2_BW0+625*A2_H-5*A2_age0-161)*4.184
+A2_EI0 <- (10*A2_BW0 + 625*A2_H -5*A2_age0-161)*1.5*4.184
+A2_EE0 <- A2_EI0
+A2_K <- A2_EI0 - gf*A2_FM0 - gl*A2_LM0 - A2_d0
+
+A2_parameters <- c(A2_EI0, A2_K, A2_H, A2_age0, 400, 1500)
+A2_init <- c(fatmass = A2_FM0,leanmass = A2_LM0)
+A2_Data <- data.frame(time = c(T2[g2],T5[g2]), fatmass = c(FM2[g2],FM5[g2]) , leanmass= c(LM2[g2],LM5[g2]))
+soltime = seq(0,2200)
+
+A2_modelcost <- function(P) {
+  sol <- lsoda(y=A2_init, times=soltime, func = EqBW1, parms = c(A2_parameters,P[1],P[2]))
+  return(modCost(sol,A2_Data))
+}
+
+A2_Fit <- modFit(f = A2_modelcost, p = c(7173.003,9882.749))
+
+A2_EIsurg <- A2_Fit$par[1]
+A2_EIfinal <- A2_Fit$par[2]
+A2_EIsurgCI <- unname(c(A2_EIsurg + summary(A2_Fit)$par[1,2]*qt(0.05, 50), A2_EIsurg + summary(A2_Fit)$par[1,2]*qt(0.95, 50)))
+A2_EIfinalCI <- unname(c(A2_EIfinal + summary(A2_Fit)$par[2,2]*qt(0.05, 50), A2_EIfinal + summary(A2_Fit)$par[2,2]*qt(0.95, 50)))
+A2_bestfit <- lsoda(y=A2_init, times=soltime, func = EqBW1, parms = c(A2_parameters,A2_EIsurg, A2_EIfinal))
+A2_fitinf <- lsoda(y=A2_init, times=soltime, func = EqBW1, parms = c(A2_parameters,A2_EIsurgCI[1], A2_EIfinalCI[1]))
+A2_fitsup <- lsoda(y=A2_init, times=soltime, func = EqBW1, parms = c(A2_parameters,A2_EIsurgCI[2], A2_EIfinalCI[2]))
+
+plot(soltime, (A2_bestfit[,2]+A2_bestfit[,3])/A2_H^2, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50), col=2)
+lines(soltime, (A2_fitinf[,2]+A2_fitinf[,3])/A2_H^2, type='l', lty=2, col=2)
+lines(soltime, (A2_fitsup[,2]+A2_fitsup[,3])/A2_H^2, type='l', lty=2, col=2)
+points(T2[g2], BMI2[g2], col=2)
+points(T5[g2], BMI5[g2], col=2)
+title(main="BMI change overtime for the first weight stable group")
+legend("topleft", cex=0.7, lty=c(1,2), col=c(2,2), legend=c("Mean BMI time course", "Expected inter-individual BMI variability"))
+
+# # # # # #
+# GROUP 3 #
+# # # # # #
+
+A3_age0 <- mean(age0[g3])
+A3_BW0 <- mean(BW0[g3])
+A3_FM0 <- mean(FM0[g3])
+A3_LM0 <- mean(LM0[g3])
+A3_H <- mean(H[g3])
+A3_d0 <- ((1-Btef)*1.5-1)*(10*A3_BW0+625*A3_H-5*A3_age0-161)*4.184
+A3_EI0 <- (10*A3_BW0 + 625*A3_H -5*A3_age0-161)*1.5*4.184
+A3_EE0 <- A3_EI0
+A3_K <- A3_EI0 - gf*A3_FM0 - gl*A3_LM0 - A3_d0
+
+A3_parameters <- c(A3_EI0, A3_K, A3_H, A3_age0, 676, 900)
+A3_init <- c(fatmass = A3_FM0,leanmass = A3_LM0)
+A3_Data <- data.frame(time = c(T2[g3],T5[g3]), fatmass = c(FM2[g3],FM5[g3]) , leanmass= c(LM2[g3],LM5[g3]))
+soltime = seq(0,2200)
+
+A3_modelcost <- function(P) {
+  sol <- lsoda(y=A3_init, times=soltime, func = EqBW1, parms = c(A3_parameters,P[1],P[2]))
+  return(modCost(sol,A3_Data))
+}
+
+A3_Fit <- modFit(f = A3_modelcost, p = c(6795.718,9250.329))
+
+A3_EIsurg <- A3_Fit$par[1]
+A3_EIfinal <- A3_Fit$par[2]
+A3_EIsurgCI <- unname(c(A3_EIsurg + summary(A3_Fit)$par[1,2]*qt(0.05, 2), A3_EIsurg + summary(A3_Fit)$par[1,2]*qt(0.95, 2)))
+A3_EIfinalCI <- unname(c(A3_EIfinal + summary(A3_Fit)$par[2,2]*qt(0.05, 2), A3_EIfinal + summary(A3_Fit)$par[2,2]*qt(0.95, 2)))
+A3_bestfit <- lsoda(y=A3_init, times=soltime, func = EqBW1, parms = c(A3_parameters,A3_EIsurg, A3_EIfinal))
+A3_fitinf <- lsoda(y=A3_init, times=soltime, func = EqBW1, parms = c(A3_parameters,A3_EIsurgCI[1], A3_EIfinalCI[1]))
+A3_fitsup <- lsoda(y=A3_init, times=soltime, func = EqBW1, parms = c(A3_parameters,A3_EIsurgCI[2], A3_EIfinalCI[2]))
+
+plot(soltime, (A3_bestfit[,2]+A3_bestfit[,3])/A3_H^2, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50), col=3)
+lines(soltime, (A3_fitinf[,2]+A3_fitinf[,3])/A3_H^2, type='l', lty=2, col=3)
+lines(soltime, (A3_fitsup[,2]+A3_fitsup[,3])/A3_H^2, type='l', lty=2, col=3)
+points(T2[g3], BMI2[g3], col=3)
+points(T5[g3], BMI5[g3], col=3)
+title(main="BMI change overtime for the second weight stable group")
+legend("topleft", cex=0.7, lty=c(1,2), col=c(3,3), legend=c("Mean BMI time course", "Expected inter-individual BMI variability"))
 
 ```
