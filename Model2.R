@@ -65,6 +65,10 @@ LA0 <- dat$LA0
 LA2 <- dat$LA2
 LA5 <- dat$LA5
 
+kin0 <- dat$kin0
+kin2 <- dat$kin2
+kin5 <- dat$kin5
+
 ##############
 # PARAMETERS #
 ##############
@@ -271,6 +275,7 @@ plotCI(Tg, BMIg3, uiw = errg3, lwd =2, col = 3, add =T)
 # # # # # #
 # GROUP 1 #
 # # # # # #
+A1_n <- length(g1)
 A1_age0 <- mean(age0[g1])
 A1_BW0 <- mean(BW0[g1])
 A1_FM0 <- mean(FM0[g1])
@@ -293,10 +298,20 @@ A1_modelcost <- function(P) {
 
 A1_Fit <- modFit(f = A1_modelcost, p = c(mean(EIsurg[g1]),mean(EIfinal[g1])))
 
+A1_sssurg <- 0
+A1_ssfinal <- 0
+for (i in 1:length(g1)){
+  A1_sssurg <- A1_sssurg + (EIsurg[i]-mean(EIsurg[g1]))^2
+  A1_ssfinal <- A1_ssfinal + (EIfinal[i]-mean(EIfinal[g1]))^2
+}
+A1_mse <- mean(A1_Fit$residuals^2)
+A1_sesurg <- sqrt(A1_mse * (1/A1_n + 1 + (7000-mean(EIsurg[g1])^2/A1_sssurg)))
+A1_sefinal <- sqrt(A1_mse * (1/A1_n + 1 + (7000-mean(EIfinal[g1])^2/A1_ssfinal)))
+
 A1_EIsurg <- A1_Fit$par[1]
 A1_EIfinal <- A1_Fit$par[2]
-A1_EIsurgCI <- unname(c(A1_EIsurg + summary(A1_Fit)$par[1,2]*qt(0.05, 54), A1_EIsurg + summary(A1_Fit)$par[1,2]*qt(0.95, 54)))
-A1_EIfinalCI <- unname(c(A1_EIfinal + summary(A1_Fit)$par[2,2]*qt(0.05, 54), A1_EIfinal + summary(A1_Fit)$par[2,2]*qt(0.95, 54)))
+A1_EIsurgCI <- unname(c(A1_EIsurg + A1_sesurg*qt(0.05, A1_n-2), A1_EIsurg + A1_sesurg*qt(0.95, A1_n-2)))
+A1_EIfinalCI <- unname(c(A1_EIfinal + A1_sefinal*qt(0.05, A1_n-2), A1_EIfinal + A1_sefinal*qt(0.95, A1_n-2)))
 A1_bestfit <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurg, A1_EIfinal))
 A1_fitinf <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurgCI[1], A1_EIfinalCI[1]))
 A1_fitsup <- lsoda(y=A1_init, times=soltime, func = EqBW, parms = c(A1_parameters,A1_EIsurgCI[2], A1_EIfinalCI[2]))
@@ -312,7 +327,7 @@ legend("topleft", cex=0.7, lty=c(1,2), col=c(1,1), legend=c("Mean BMI time cours
 # # # # # #
 # GROUP 2 #
 # # # # # #
-
+A2_n <- length(g2)
 A2_age0 <- mean(age0[g2])
 A2_BW0 <- mean(BW0[g2])
 A2_FM0 <- mean(FM0[g2])
@@ -335,10 +350,20 @@ A2_modelcost <- function(P) {
 
 A2_Fit <- modFit(f = A2_modelcost, p = c(mean(EIsurg[g2]),mean(EIfinal[g2])))
 
+A2_sssurg <- 0
+A2_ssfinal <- 0
+for (i in 1:length(g2)){
+  A2_sssurg <- A2_sssurg + (EIsurg[i]-mean(EIsurg[g2]))^2
+  A2_ssfinal <- A2_ssfinal + (EIfinal[i]-mean(EIfinal[g2]))^2
+}
+A2_mse <- mean(A2_Fit$residuals^2)
+A2_sesurg <- sqrt(A2_mse * (1/A2_n + 1 + (7000-mean(EIsurg[g2])^2/A2_sssurg)))
+A2_sefinal <- sqrt(A2_mse * (1/A2_n + 1 + (7000-mean(EIfinal[g2])^2/A2_ssfinal)))
+
 A2_EIsurg <- A2_Fit$par[1]
 A2_EIfinal <- A2_Fit$par[2]
-A2_EIsurgCI <- unname(c(A2_EIsurg + summary(A2_Fit)$par[1,2]*qt(0.05, 50), A2_EIsurg + summary(A2_Fit)$par[1,2]*qt(0.95, 50)))
-A2_EIfinalCI <- unname(c(A2_EIfinal + summary(A2_Fit)$par[2,2]*qt(0.05, 50), A2_EIfinal + summary(A2_Fit)$par[2,2]*qt(0.95, 50)))
+A2_EIsurgCI <- unname(c(A2_EIsurg + A2_sesurg*qt(0.05, A2_n-2), A2_EIsurg + A2_sesurg*qt(0.95, A2_n-2)))
+A2_EIfinalCI <- unname(c(A2_EIfinal + A2_sefinal*qt(0.05, A2_n-2), A2_EIfinal + A2_sefinal*qt(0.95, A2_n-2)))
 A2_bestfit <- lsoda(y=A2_init, times=soltime, func = EqBW, parms = c(A2_parameters,A2_EIsurg, A2_EIfinal))
 A2_fitinf <- lsoda(y=A2_init, times=soltime, func = EqBW, parms = c(A2_parameters,A2_EIsurgCI[1], A2_EIfinalCI[1]))
 A2_fitsup <- lsoda(y=A2_init, times=soltime, func = EqBW, parms = c(A2_parameters,A2_EIsurgCI[2], A2_EIfinalCI[2]))
@@ -354,7 +379,7 @@ legend("topleft", cex=0.7, lty=c(1,2), col=c(2,2), legend=c("Mean BMI time cours
 # # # # # #
 # GROUP 3 #
 # # # # # #
-
+A3_n <- length(g3)
 A3_age0 <- mean(age0[g3])
 A3_BW0 <- mean(BW0[g3])
 A3_FM0 <- mean(FM0[g3])
@@ -377,10 +402,20 @@ A3_modelcost <- function(P) {
 
 A3_Fit <- modFit(f = A3_modelcost, p = c(mean(EIsurg[g3]),mean(EIfinal[g3])))
 
+A3_sssurg <- 0
+A3_ssfinal <- 0
+for (i in 1:length(g3)){
+  A3_sssurg <- A3_sssurg + (EIsurg[i]-mean(EIsurg[g3]))^2
+  A3_ssfinal <- A3_ssfinal + (EIfinal[i]-mean(EIfinal[g3]))^2
+}
+A3_mse <- mean(A3_Fit$residuals^2)
+A3_sesurg <- sqrt(A3_mse * (1/A3_n + 1 + (7000-mean(EIsurg[g3])^2/A3_sssurg)))
+A3_sefinal <- sqrt(A3_mse * (1/A3_n + 1 + (7000-mean(EIfinal[g3])^2/A3_ssfinal)))
+
 A3_EIsurg <- A3_Fit$par[1]
 A3_EIfinal <- A3_Fit$par[2]
-A3_EIsurgCI <- unname(c(A3_EIsurg + summary(A3_Fit)$par[1,2]*qt(0.05, 54), A3_EIsurg + summary(A3_Fit)$par[1,2]*qt(0.95, 54)))
-A3_EIfinalCI <- unname(c(A3_EIfinal + summary(A3_Fit)$par[2,2]*qt(0.05, 54), A3_EIfinal + summary(A3_Fit)$par[2,2]*qt(0.95, 54)))
+A3_EIsurgCI <- unname(c(A3_EIsurg + A3_sesurg*qt(0.05, A3_n-2), A3_EIsurg + A3_sesurg*qt(0.95, A3_n-2)))
+A3_EIfinalCI <- unname(c(A3_EIfinal + A3_sefinal*qt(0.05, A3_n-2), A3_EIfinal + A3_sefinal*qt(0.95, A3_n-2)))
 A3_bestfit <- lsoda(y=A3_init, times=soltime, func = EqBW, parms = c(A3_parameters,A3_EIsurg, A3_EIfinal))
 A3_fitinf <- lsoda(y=A3_init, times=soltime, func = EqBW, parms = c(A3_parameters,A3_EIsurgCI[1], A3_EIfinalCI[1]))
 A3_fitsup <- lsoda(y=A3_init, times=soltime, func = EqBW, parms = c(A3_parameters,A3_EIsurgCI[2], A3_EIfinalCI[2]))
@@ -396,15 +431,15 @@ legend("topleft", cex=0.7, lty=c(1,2), col=c(3,3), legend=c("Mean BMI time cours
 ####################
 # CORRELATION TEST #
 ####################
-EE2 <- c()
-EE5 <- c()
+EI2 <- c()
+EI5 <- c()
 for (i in 1:41){
-  EE2[i] <- EE0[i] - EE(T2[i], 500, 1000, EI0[i], EIsurg[i], EIfinal[i], K[i], H[i], age2[i], FM2[i], LM2[i])
-  EE5[i] <- EE0[i] - EE(T5[i], 500, 1000, EI0[i], EIsurg[i], EIfinal[i], K[i], H[i], age5[i], FM5[i], LM5[i])
+  EI2[i] <- EI0[i] - EI(T2[i], 500, 900, EI0[i], EIsurg[i], EIfinal[i])
+  EI5[i] <- EI0[i] - EI(T5[i], 500, 900, EI0[i], EIsurg[i], EIfinal[i])
 }
 
-cordat <- matrix(c(EE0, EE2, EE5, LA0, LA0-LA2, LA0-LA5), nrow = 41, ncol= 6, byrow=F)
-colnames(cordat) <- c("EE0", "EE2", "EE5","LA0", "LA2", "LA5")
+cordat <- matrix(c(EI0, EI2, EI5, kin0, kin0-kin2, kin0-kin5), nrow = 41, ncol= 6, byrow=F)
+colnames(cordat) <- c("EI0", "EI2", "EI5","kin0", "kin2", "kin5")
 mcor <- rcorr(cordat)$r[1:3,4:6]
 corrplot(mcor, type="upper", order="hclust", tl.col="black", tl.srt=45)
 pairs(cordat)
