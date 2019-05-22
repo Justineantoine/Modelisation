@@ -5,7 +5,7 @@ library(plotrix)
 library(Hmisc)
 library(corrplot)
 
-dat <- read.table(file = "CLINICAL(copietravail).csv", sep= ',', header = TRUE)
+dat <- read.table(file = "CLINICAL.csv", sep= ',', header = TRUE)
 ######################################
 # BODYWEIGHT, FAT MASS AND LEAN MASS #
 ######################################
@@ -20,8 +20,6 @@ FM5 <- dat$TBFD5
 
 adjust = subset(FM0/dat$TBFB0, is.na(FM0/dat$TBFB0)==F)
 mean_adjust = mean(adjust)
-adjust2 = subset(BW1-BW2, is.na(BW1)==F)
-mean_adjust2 = mean(adjust2)
 
 FM0[18] <- mean_adjust*dat$TBFB0[18]
 
@@ -58,16 +56,20 @@ T2 <- dat$T2
 T1 <- T2/2
 T5 <- dat$T5
 
-#############
-# LIPID AGE #
-#############
-LA0 <- dat$LA0
-LA2 <- dat$LA2
-LA5 <- dat$LA5
+##########################
+# LIPID AGE AND TURNOVER #
+##########################
+LA0 <- dat$LA0*365
+LA2 <- dat$LA2*365
+LA5 <- dat$LA5*365
 
-kin0 <- dat$kin0
-kin2 <- dat$kin2
-kin5 <- dat$kin5
+kout0 <- dat$TO0
+kout2 <- dat$TO2
+kout5 <- dat$TO5
+
+kin0 <- kout0 * FM0
+kin2 <- kout2 * FM2
+kin5 <- kout5 * FM5
 
 ##############
 # PARAMETERS #
@@ -140,11 +142,11 @@ EE <- function(t, Ts, Tf, EIi, EIs, EIf, k, h, a, FM, LM){
   result
   }
 
-##############
-# K CONSTANT #
-##############
+##############################
+# K CONSTANT AND K2 CONSTANT #
+##############################
 K <- EI0 - gf*FM0 - gl*LM0 - d0
-
+K2 <- 5e-6
 ##############
 # EDO SYSTEM #
 ##############
@@ -161,17 +163,21 @@ EqBW <- function(t, y, parameters){
   EIf <- parameters[8]
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
-  
+  kin <- K2 * EI(t, Ts, Tf, EIi, EIs, EIf)
+  print(kin)
   dF <- partF/pf * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dL <- partL/pl * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
-  list(c(dF, dL))
+  dA <- 1 - kin*y[3]/y[1]
+  print(dA)
+  list(c(dF, dL, dA)) 
 }
 
 soltime <- seq(0, 2200)
 
-for (i in 1:41){
+for (i in 7:7){
+  print(i)
   parameters <- c(EI0[i], K[i], H[i], age0[i], 500, 900)
-  init <- c(fatmass = FM0[i],leanmass = LM0[i])
+  init <- c(fatmass = FM0[i],leanmass = LM0[i], A= LA0[i])
   Data <- data.frame(time = c(T2[i],T5[i]), fatmass = c(FM2[i],FM5[i]) , leanmass= c(LM2[i],LM5[i]))
   
   modelcost <- function(P) {
@@ -180,9 +186,9 @@ for (i in 1:41){
   }
   
   Fit <- modFit(f = modelcost, p = c(7500,9800))
-  
-  EIsurg[i] <- Fit$par[1]
-  EIfinal[i] <- Fit$par[2]
+  # 
+  # EIsurg[i] <- Fit$par[1]
+  # EIfinal[i] <- Fit$par[2]
 
 }
 
@@ -190,17 +196,16 @@ for (i in 1:41){
 # PLOT FM AND BODY WEIGHT, EE AND EI #
 ######################################
 for (k in 1:41){
-  ind <- k
   graphtime <- seq(-100,2200)
-  parameters <- c(EI0[ind], K[ind], H[ind], age0[ind], 500, 900, EIsurg[ind], EIfinal[ind])
-  init <- c(fatmass = FM0[ind],leanmass = LM0[ind])
+  parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])
+  init <- c(fatmass = FM0[k],leanmass = LM0[k], A =LA0[k], Kout = kout0[k])
   bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters))
   
-  graphEI= rep(EI0[ind], 100)
-  graphEE = rep(EE0[ind], 100)
+  graphEI= rep(EI0[k], 100)
+  graphEE = rep(EE0[k], 100)
   for (i in 101:2301){
-    graphEI[i] <- EI(graphtime[i], 500, 900, EI0[ind], EIsurg[ind], EIfinal[ind])
-    graphEE[i] <- EE(graphtime[i], 500, 900, EI0[ind], EIsurg[ind], EIfinal[ind], K[ind], H[ind], age0[ind], bestfit[i-100,2], bestfit[i-100,3])
+    graphEI[i] <- EI(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k])
+    graphEE[i] <- EE(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k], K[k], H[k], age0[k], bestfit[i-100,2], bestfit[i-100,3])
   }
   
   plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
@@ -208,26 +213,61 @@ for (k in 1:41){
   legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
   
   
-  graphFM <- c(rep(FM0[ind], 100), bestfit[,2])
-  graphLM <- c(rep(LM0[ind], 100), bestfit[,3])
-  graphBW <- c(rep(BW0[ind], 100), bestfit[,2]+bestfit[,3])
+  graphFM <- c(rep(FM0[k], 100), bestfit[,2])
+  graphLM <- c(rep(LM0[k], 100), bestfit[,3])
+  graphBW <- c(rep(BW0[k], 100), bestfit[,2]+bestfit[,3])
   
   plot(graphtime, graphFM, type="l", ylim=c(0,160), xlab="Days", ylab="Weight in kg")
   lines(graphtime, graphBW, type = "l", lty =1, col=4)
   lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
-  points(T0[ind], FM0[ind], pch=19)
-  points(T2[ind], FM2[ind], pch=19)
-  points(T5[ind], FM5[ind], pch=19)
-  points(T0[ind], BW0[ind], pch=19, col=4)
-  points(T2[ind], BW2[ind], pch=19, col=4)
-  points(T5[ind], BW5[ind], pch=19, col=4)
-  points(T0[ind], LM0[ind], pch=3, col="dodgerblue4")
-  points(T2[ind], LM2[ind], pch=3, col="dodgerblue4")
-  points(T5[ind], LM5[ind], pch=3, col="dodgerblue4")
+  points(T0[k], FM0[k], pch=19)
+  points(T2[k], FM2[k], pch=19)
+  points(T5[k], FM5[k], pch=19)
+  points(T0[k], BW0[k], pch=19, col=4)
+  points(T2[k], BW2[k], pch=19, col=4)
+  points(T5[k], BW5[k], pch=19, col=4)
+  points(T0[k], LM0[k], pch=3, col="dodgerblue4")
+  points(T2[k], LM2[k], pch=3, col="dodgerblue4")
+  points(T5[k], LM5[k], pch=3, col="dodgerblue4")
   title(main= k)
   legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
   
 }
+
+
+
+ind <- 5
+graphtime <- seq(-100,2200)
+parameters <- c(EI0[ind], K[ind], H[ind], age0[ind], 500, 900, EIsurg[ind], EIfinal[ind])
+init <- c(fatmass = FM0[ind],leanmass = LM0[ind], A = LA0[ind], Kout = kout0[ind])
+bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters))
+
+graphFM <- c(rep(FM0[ind], 100), bestfit[,2])
+graphLM <- c(rep(LM0[ind], 100), bestfit[,3])
+graphBW <- c(rep(BW0[ind], 100), bestfit[,2]+bestfit[,3])
+
+plot(graphtime, graphFM, type="l", ylim=c(0,160), xlab="Days", ylab="Weight in kg")
+lines(graphtime, graphBW, type = "l", lty =1, col=4)
+lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
+points(T0[ind], FM0[ind], pch=19)
+points(T2[ind], FM2[ind], pch=19)
+points(T5[ind], FM5[ind], pch=19)
+points(T0[ind], BW0[ind], pch=19, col=4)
+points(T2[ind], BW2[ind], pch=19, col=4)
+points(T5[ind], BW5[ind], pch=19, col=4)
+points(T0[ind], LM0[ind], pch=3, col="dodgerblue4")
+points(T2[ind], LM2[ind], pch=3, col="dodgerblue4")
+points(T5[ind], LM5[ind], pch=3, col="dodgerblue4")
+title(main= k)
+legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
+
+graphA <- c(rep(LA0[ind], 100), bestfit[,4])
+graphkout <- c(rep(kout0[ind], 100, bestfit[,5]))
+
+plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age")
+
+title(main= ind)
+legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
 
 ####################
 # AVERAGE PATIENTS #
