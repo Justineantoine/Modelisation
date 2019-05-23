@@ -268,7 +268,7 @@ for (k in 1:41){
   # # # # # # #
   
   graphA <- c(rep(LA0[k], 100), bestfit[,4])
-  plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age")
+  plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age", ylim=c(0, 2700))
   title(main=c("Lipid age for patient : ", k))
 }
 
