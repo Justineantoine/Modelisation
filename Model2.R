@@ -147,9 +147,13 @@ EE <- function(t, Ts, Tf, EIi, EIs, EIf, k, h, a, FM, LM){
 ##############################
 K <- EI0 - gf*FM0 - gl*LM0 - d0
 K2 <- 5e-6
-##############
-# EDO SYSTEM #
-##############
+##########################
+# EDO SYSTEM : BW AND LA #
+##########################
+
+  # # # #
+  # FIT #
+  # # # #
 
 EqBW <- function(t, y, parameters){
 
@@ -163,21 +167,16 @@ EqBW <- function(t, y, parameters){
   EIf <- parameters[8]
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
-  kin <- K2 * EI(t, Ts, Tf, EIi, EIs, EIf)
-  print(kin)
+
   dF <- partF/pf * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dL <- partL/pl * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
-  dA <- 1 - kin*y[3]/y[1]
-  print(dA)
-  list(c(dF, dL, dA)) 
+  list(c(dF, dL)) 
 }
 
 soltime <- seq(0, 2200)
-
-for (i in 7:7){
-  print(i)
+for (i in 1:41){
   parameters <- c(EI0[i], K[i], H[i], age0[i], 500, 900)
-  init <- c(fatmass = FM0[i],leanmass = LM0[i], A= LA0[i])
+  init <- c(fatmass = FM0[i],leanmass = LM0[i])
   Data <- data.frame(time = c(T2[i],T5[i]), fatmass = c(FM2[i],FM5[i]) , leanmass= c(LM2[i],LM5[i]))
   
   modelcost <- function(P) {
@@ -186,20 +185,49 @@ for (i in 7:7){
   }
   
   Fit <- modFit(f = modelcost, p = c(7500,9800))
-  # 
-  # EIsurg[i] <- Fit$par[1]
-  # EIfinal[i] <- Fit$par[2]
 
+  EIsurg[i] <- Fit$par[1]
+  EIfinal[i] <- Fit$par[2]
+}
+  
+  # # # # # # #
+  # LIPID AGE #
+  # # # # # # #
+
+EqBWLA <- function(t, y, parameters){
+  
+  EIi <- parameters[1]
+  k <- parameters[2]
+  h <- parameters[3]
+  a <- parameters[4]
+  Ts <- parameters[5]
+  Tf <- parameters[6]
+  EIs <- parameters[7]
+  EIf <- parameters[8]
+  partF <- y[1]/(C+y[1])
+  partL <- 1-partF
+  kin <- K2 * EI(t, Ts, Tf, EIi, EIs, EIf)
+  
+  dF <- partF/pf * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dL <- partL/pl * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dA <- 1 - kin*y[3]/y[1]
+  
+  kout <- kin-dF/y[1]
+  list(c(dF, dL, dA, kout)) 
 }
 
-######################################
-# PLOT FM AND BODY WEIGHT, EE AND EI #
-######################################
+#################################################
+# PLOT FM AND BODY WEIGHT, EE AND EI, LIPID AGE #
+#################################################
 for (k in 1:41){
   graphtime <- seq(-100,2200)
   parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])
   init <- c(fatmass = FM0[k],leanmass = LM0[k], A =LA0[k], Kout = kout0[k])
-  bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters))
+  bestfit <- lsoda(y=init, times=soltime, func = EqBWLA, parms = c(parameters))
+  
+  # # # # # # #
+  # EI AND EE #
+  # # # # # # #
   
   graphEI= rep(EI0[k], 100)
   graphEE = rep(EE0[k], 100)
@@ -210,8 +238,12 @@ for (k in 1:41){
   
   plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
   lines(graphtime, graphEE, type ="l", lty = 1, col=2)
+  title(main=c("Energy rates for patient : ", k))
   legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
   
+  # # # # # # # # #
+  # BW, LM AND FM #
+  # # # # # # # # #
   
   graphFM <- c(rep(FM0[k], 100), bestfit[,2])
   graphLM <- c(rep(LM0[k], 100), bestfit[,3])
@@ -229,45 +261,17 @@ for (k in 1:41){
   points(T0[k], LM0[k], pch=3, col="dodgerblue4")
   points(T2[k], LM2[k], pch=3, col="dodgerblue4")
   points(T5[k], LM5[k], pch=3, col="dodgerblue4")
-  title(main= k)
+  title(main=c("BodyWeight time course for patient : ", k))
   legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
   
+  # # # # # # #
+  # LIPID AGE #
+  # # # # # # #
+  
+  graphA <- c(rep(LA0[k], 100), bestfit[,4])
+  plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age")
+  title(main=c("Lipid age for patient : ", k))
 }
-
-
-
-ind <- 5
-graphtime <- seq(-100,2200)
-parameters <- c(EI0[ind], K[ind], H[ind], age0[ind], 500, 900, EIsurg[ind], EIfinal[ind])
-init <- c(fatmass = FM0[ind],leanmass = LM0[ind], A = LA0[ind], Kout = kout0[ind])
-bestfit <- lsoda(y=init, times=soltime, func = EqBW, parms = c(parameters))
-
-graphFM <- c(rep(FM0[ind], 100), bestfit[,2])
-graphLM <- c(rep(LM0[ind], 100), bestfit[,3])
-graphBW <- c(rep(BW0[ind], 100), bestfit[,2]+bestfit[,3])
-
-plot(graphtime, graphFM, type="l", ylim=c(0,160), xlab="Days", ylab="Weight in kg")
-lines(graphtime, graphBW, type = "l", lty =1, col=4)
-lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
-points(T0[ind], FM0[ind], pch=19)
-points(T2[ind], FM2[ind], pch=19)
-points(T5[ind], FM5[ind], pch=19)
-points(T0[ind], BW0[ind], pch=19, col=4)
-points(T2[ind], BW2[ind], pch=19, col=4)
-points(T5[ind], BW5[ind], pch=19, col=4)
-points(T0[ind], LM0[ind], pch=3, col="dodgerblue4")
-points(T2[ind], LM2[ind], pch=3, col="dodgerblue4")
-points(T5[ind], LM5[ind], pch=3, col="dodgerblue4")
-title(main= k)
-legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
-
-graphA <- c(rep(LA0[ind], 100), bestfit[,4])
-graphkout <- c(rep(kout0[ind], 100, bestfit[,5]))
-
-plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age")
-
-title(main= ind)
-legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
 
 ####################
 # AVERAGE PATIENTS #
