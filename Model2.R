@@ -405,6 +405,13 @@ lines(soltime, R_EEsup, col=2, lty=2)
 title(main="Energy rates")
 legend("bottomright", cex = 0.7, lty=c(1,2), col=c(2,2), legend=c("Average energy expenditure rate", "Expected inter-individual EE variability"))
 
+#LIPID AGE GRAPH
+plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
+lines(soltime, R_fitinf[,4], lty=2)
+lines(soltime, R_fitsup[,4], lty=2)
+title(main="Lipid Age")
+
+
                   # # # # # # # # #
                   # WEIGHT STABLE #
                   # # # # # # # # #
@@ -500,19 +507,22 @@ legend("bottomright", cex = 0.7, lty=c(1,2), col=c(2,2), legend=c("Average energ
 
 
 #LIPID AGE GRAPH
-plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
-lines(soltime, S_bestfit[,4], col=2)
-lines(soltime, R_fitinf[,4], lty=2)
-lines(soltime, R_fitsup[,4], lty=2)
-lines(soltime, S_fitinf[,4], lty=2, col=2)
-lines(soltime, S_fitsup[,4], lty=2, col=2)
+plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
+lines(soltime, S_fitinf[,4], lty=2)
+lines(soltime, S_fitsup[,4], lty=2)
 title(main="Lipid Age")
-legend("topright", cex = 0.7, lty=c(1,1), col=c(1,2), legend=c("Rebounders group", "Weight stabe group"))
+
 
 ############################
 # MEAN COMPAR TEST R AND S #
 ############################
 comp <- t.test(BMI0[g1], BMI0[g4])
+
+
+#######################
+# COMPARISON BOXPLOTS #
+#######################
+boxplot()
 
 ####################
 # CORRELATION TEST #
