@@ -117,7 +117,7 @@ EI <- function(t, Ts, Tf, EIi, EIs, EIf) #i pour l'individu auquel on s'interess
     
   }
   else{
-    intake = (t-500)*s+EIs
+    intake = (t-Ts)*s+EIs
     if (intake<EIf){
       intake
     }
@@ -206,7 +206,10 @@ EqBWLA <- function(t, y, parameters){
   EIf <- parameters[8]
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
-  kin <- K2 * EI(t, Ts, Tf, EIi, EIs, EIf)
+  
+  if (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]) < 0){kin <- 0}
+  else{kin <- 1/37000 * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))}
+
   
   dF <- partF/pf * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dL <- partL/pl * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
@@ -230,14 +233,15 @@ EqKout <- function(parameters,fit){
   EIs <- parameters[7]
   EIf <- parameters[8]
   
-  
   for (i in soltime){
     partF <- fit[i+1,2]/(C+fit[i+1,2])
     partL <- 1-partF
-    kin <- K2 * EI(i, Ts, Tf, EIi, EIs, EIf)
+    if (EI(i, Ts, Tf, EIi, EIs, EIf) - EE(i, Ts, Tf, EIi, EIs, EIf, k, h, a,  fit[i+1,2], fit[i+1,3]) < 0){kin <- 0}
+    else{kin <- 1/37000 * (EI(i, Ts, Tf, EIi, EIs, EIf) - EE(i, Ts, Tf, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3]))}
     dF <- partF/pf * (EI(i, Ts, Tf, EIi, EIs, EIf) - EE(i, Ts, Tf, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3]))
-    Kout <- c(Kout, unname(kin - dF/fit[i+1,2]))
+    Kout <- c(Kout, unname((kin - dF)/fit[i+1,2]))
   }
+  
   Kout
 }
 
@@ -296,8 +300,17 @@ for (k in 1:41){
   graphA <- c(rep(LA0[k], 100), bestfit[,4])
   plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age", ylim=c(0, 2700))
   title(main=c("Lipid age for patient : ", k))
-}
 
+
+  # # # # #
+  # K OUT #
+  # # # # #
+
+  graphKout <- EqKout(parameters, bestfit)
+  plot(soltime, graphKout, type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0, 0.1))
+  title(main=c("Kout for patient : ", k))
+  
+}
 ####################
 # AVERAGE PATIENTS #
 ####################
@@ -354,7 +367,7 @@ R_d0 <- ((1-Btef)*1.5-1)*(10*R_BW0+625*R_H-5*R_age0-161)*4.184
 R_EI0 <- (10*R_BW0 + 625*R_H -5*R_age0-161)*1.5*4.184
 R_EE0 <- R_EI0
 R_K <- R_EI0 - gf*R_FM0 - gl*R_LM0 - R_d0
-R_parameters <- c(R_EI0, R_K, R_H, R_age0, 380, 1500)
+R_parameters <- c(R_EI0, R_K, R_H, R_age0, 500, 900)
 R_init <- c(fatmass = R_FM0,leanmass = R_LM0)
 R_Data <- data.frame(time = c(T2[gr],T5[gr]), fatmass = c(FM2[gr],FM5[gr]) , leanmass= c(LM2[gr],LM5[gr]))
 
@@ -466,9 +479,11 @@ lines(soltime, R_fitsup2[,4], lty=2)
 title(main="Lipid Age")
 
 #Kout GRAPH
-plot(soltime, R_Kout, type="l")
-lines(soltime, R_Koutinf2, lty=2)
-lines(soltime, R_Koutsup2, lty=2)
+plot(soltime, R_Kout, type="l", xlab="Days", ylab="Kout (/d)")
+# lines(soltime, R_Koutinf2, lty=2)
+# lines(soltime, R_Koutsup2, lty=2)
+title(main="Kout")
+
 
 
                   # # # # # # # # #
@@ -490,7 +505,7 @@ S_d0 <- ((1-Btef)*1.5-1)*(10*S_BW0+625*S_H-5*S_age0-161)*4.184
 S_EI0 <- (10*S_BW0 + 625*S_H -5*S_age0-161)*1.5*4.184
 S_EE0 <- S_EI0
 S_K <- S_EI0 - gf*S_FM0 - gl*S_LM0 - S_d0
-S_parameters <- c(S_EI0, S_K, S_H, S_age0, 500, 900)
+S_parameters <- c(S_EI0, S_K, S_H, S_age0, 380, 1500)
 S_init <- c(fatmass = S_FM0,leanmass = S_LM0)
 S_Data <- data.frame(time = c(T2[gs],T5[gs]), fatmass = c(FM2[gs],FM5[gs]) , leanmass= c(LM2[gs],LM5[gs]))
 
@@ -595,17 +610,18 @@ lines(soltime, S_fitinf[,4], lty=2)
 lines(soltime, S_fitsup[,4], lty=2)
 title(main="Lipid Age")
 
-plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
+plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)")
 lines(soltime, S_fitinf2[,4], lty=2)
 lines(soltime, S_fitsup2[,4], lty=2)
+points(T2[gs], LA2[gs])
+points(T5[gs], LA5[gs])
 title(main="Lipid Age")
 
 #Kout GRAPH
-plot(soltime, S_Kout, type="l")
-lines(soltime, S_Koutinf2, lty=2)
-lines(soltime, S_Koutsup2, lty=2)
-
-
+plot(soltime, S_Kout, type="l", xlab="Days", ylab="Kout (/d)")
+# lines(soltime, S_Koutinf2, lty=2)
+# lines(soltime, S_Koutsup2, lty=2)
+title(main="Kout")
 
 ############################
 # MEAN COMPAR TEST R AND S #
@@ -619,6 +635,14 @@ comp6 <- t.test(R_bestfit[T2[gr], 4], R_bestfit[T5[gr], 4])
 comp7 <- t.test(LA0[gs], S_bestfit[T5[gs], 4])
 comp8 <- t.test(S_bestfit[T2[gs], 4], S_bestfit[T5[gs], 4])
 
+
+
+
+
+
+
+
+
 #######################
 # COMPARISON BOXPLOTS #
 #######################
@@ -629,14 +653,4 @@ title(main = c("p_value = ", round(comp2$p.value, digits=3)), cex.main = 0.7, yl
 ####################
 # CORRELATION TEST #
 ####################
-EE <- cor
-for (i in 1:41){
-  EEcor[i] <- EI0[i] - EI(T2[i], 500, 900, EI0[i], EIsurg[i], EIfinal[i])
-  EI5[i] <- EI0[i] - EI(T5[i], 500, 900, EI0[i], EIsurg[i], EIfinal[i])
-}
 
-cordat <- matrix(c(EI0, EI2, EI5, kin0, kin0-kin2, kin0-kin5), nrow = 41, ncol= 6, byrow=F)
-colnames(cordat) <- c("EI0", "EI2", "EI5","kin0", "kin2", "kin5")
-mcor <- rcorr(cordat)$r[1:3,4:6]
-corrplot(mcor, type="upper", order="hclust", tl.col="black", tl.srt=45)
-pairs(cordat)
