@@ -206,16 +206,13 @@ EqBWLA <- function(t, y, parameters){
   EIf <- parameters[8]
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
-  
-  if (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]) < 0){kin <- 0}
-  else{kin <- 1/37000 * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))}
 
   
   dF <- partF/pf * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dL <- partL/pl * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
-  dA <- 1 - kin*y[3]/y[1]
+  #dA <- 1 - kin*y[3]/y[1]
 
-  list(c(dF, dL, dA)) 
+  list(c(dF, dL))#, dA)) 
 }
 
   # # # # #
@@ -230,14 +227,14 @@ EqKout <- function(parameters,fit){
   a <- parameters[4]
   Ts <- parameters[5]
   Tf <- parameters[6]
-  EIs <- parameters[7]
-  EIf <- parameters[8]
+  A <- parameters[7]
+  EIs <- parameters[8]
+  EIf <- parameters[9]
   
   for (i in soltime){
     partF <- fit[i+1,2]/(C+fit[i+1,2])
     partL <- 1-partF
-    if (EI(i, Ts, Tf, EIi, EIs, EIf) - EE(i, Ts, Tf, EIi, EIs, EIf, k, h, a,  fit[i+1,2], fit[i+1,3]) < 0){kin <- 0}
-    else{kin <- 1/37000 * (EI(i, Ts, Tf, EIi, EIs, EIf) - EE(i, Ts, Tf, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3]))}
+    kin <- fit[i+1,2]/A
     dF <- partF/pf * (EI(i, Ts, Tf, EIi, EIs, EIf) - EE(i, Ts, Tf, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3]))
     Kout <- c(Kout, unname((kin - dF)/fit[i+1,2]))
   }
@@ -390,9 +387,9 @@ R_sefinal <- sqrt(R_mse * (1/R_n + 1 + (7000-mean(EIfinal[gr])^2/R_ssfinal)))
 
 
 #BESTFIT AND PREDICTION INTERVAL
-R_init <- c(fatmass = R_FM0,leanmass = R_LM0, age = R_LA0)
-R_initinf <- c(fatmass = R_FM0CI[1],leanmass = R_LM0CI[1], age = R_LA0CI[1])
-R_initsup <- c(fatmass = R_FM0CI[2],leanmass = R_LM0CI[2], age = R_LA0CI[2])
+R_init <- c(fatmass = R_FM0,leanmass = R_LM0)#, age = R_LA0)
+R_initinf <- c(fatmass = R_FM0CI[1],leanmass = R_LM0CI[1])#, age = R_LA0CI[1])
+R_initsup <- c(fatmass = R_FM0CI[2],leanmass = R_LM0CI[2])#, age = R_LA0CI[2])
 R_EIsurg <- R_Fit$par[1]
 R_EIfinal <- R_Fit$par[2]
 R_EIsurgCI <- unname(c(R_EIsurg + R_sesurg*qt(0.05, R_n-2), R_EIsurg + R_sesurg*qt(0.95, R_n-2)))
@@ -424,11 +421,11 @@ for (i in soltime){
 }
 
     #kout
-R_Kout <- EqKout(c(R_parameters, R_EIsurg, R_EIfinal), R_bestfit)
-R_Koutinf <- EqKout(c(R_parameters, R_EIsurg, R_EIfinal), R_fitinf)
-R_Koutsup <- EqKout(c(R_parameters, R_EIsurg, R_EIfinal), R_fitsup)
-R_Koutinf2 <- EqKout(c(R_parameters, R_EIsurg, R_EIfinal), R_fitinf2)
-R_Koutsup2 <- EqKout(c(R_parameters, R_EIsurg, R_EIfinal), R_fitsup2)
+R_Kout <- EqKout(c(R_parameters, R_LA0, R_EIsurg, R_EIfinal), R_bestfit)
+R_Koutinf <- EqKout(c(R_parameters, R_LA0, R_EIsurg, R_EIfinal), R_fitinf)
+R_Koutsup <- EqKout(c(R_parameters, R_LA0, R_EIsurg, R_EIfinal), R_fitsup)
+R_Koutinf2 <- EqKout(c(R_parameters, R_LA0, R_EIsurg, R_EIfinal), R_fitinf2)
+R_Koutsup2 <- EqKout(c(R_parameters, R_LA0, R_EIsurg, R_EIfinal), R_fitsup2)
 
 
 #BMI GRAPHS
@@ -529,9 +526,9 @@ S_sefinal <- sqrt(S_mse * (1/S_n + 1 + (7000-mean(EIfinal[gs])^2/S_ssfinal)))
 
 #BESTFIT AND PREDICTION INTERVAL
 
-S_init <- c(fatmass = S_FM0,leanmass = S_LM0, age = S_LA0)
-S_initinf <- c(fatmass = S_FM0CI[1],leanmass = S_LM0CI[1], age = S_LA0CI[1])
-S_initsup <- c(fatmass = S_FM0CI[2],leanmass = S_LM0CI[2], age = S_LA0CI[2])
+S_init <- c(fatmass = S_FM0,leanmass = S_LM0)#, age = S_LA0)
+S_initinf <- c(fatmass = S_FM0CI[1],leanmass = S_LM0CI[1])#, age = S_LA0CI[1])
+S_initsup <- c(fatmass = S_FM0CI[2],leanmass = S_LM0CI[2])#, age = S_LA0CI[2])
 S_EIsurgCI <- unname(c(S_EIsurg + S_sesurg*qt(0.05, S_n-2), S_EIsurg + S_sesurg*qt(0.95, S_n-2)))
 S_EIfinalCI <- unname(c(S_EIfinal + S_sefinal*qt(0.05, S_n-2), S_EIfinal + S_sefinal*qt(0.95, S_n-2)))
 S_bestfit <- lsoda(y=S_init, times=soltime, func = EqBWLA, parms = c(S_parameters,S_EIsurg, S_EIfinal))
@@ -561,11 +558,11 @@ for (i in soltime){
 }
 
     #kout
-S_Kout <- EqKout(c(S_parameters, S_EIsurg, S_EIfinal), S_bestfit)
-S_Koutinf <- EqKout(c(S_parameters, S_EIsurg, S_EIfinal), S_fitinf)
-S_Koutsup <- EqKout(c(S_parameters, S_EIsurg, S_EIfinal), S_fitsup)
-S_Koutinf2 <- EqKout(c(S_parameters, S_EIsurg, S_EIfinal), S_fitinf2)
-S_Koutsup2 <- EqKout(c(S_parameters, S_EIsurg, S_EIfinal), S_fitsup2)
+S_Kout <- EqKout(c(S_parameters, S_LA0, S_EIsurg, S_EIfinal), S_bestfit)
+S_Koutinf <- EqKout(c(S_parameters, S_LA0, S_EIsurg, S_EIfinal), S_fitinf)
+S_Koutsup <- EqKout(c(S_parameters, S_LA0, S_EIsurg, S_EIfinal), S_fitsup)
+S_Koutinf2 <- EqKout(c(S_parameters, S_LA0, S_EIsurg, S_EIfinal), S_fitinf2)
+S_Koutsup2 <- EqKout(c(S_parameters, S_LA0, S_EIsurg, S_EIfinal), S_fitsup2)
 
 #BMI GRAPHS
 plot(soltime, S_BMI, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50), col=4)
