@@ -206,13 +206,14 @@ EqBWLA <- function(t, y, parameters){
   EIf <- parameters[8]
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
-
+  
+  kin <- K2 * EI(t, Ts, Tf, EIi, EIs, EIf)
   
   dF <- partF/pf * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dL <- partL/pl * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
-  #dA <- 1 - kin*y[3]/y[1]
+  dA <- 1 - kin*y[3]/y[1]
 
-  list(c(dF, dL))#, dA)) 
+  list(c(dF, dL, dA)) 
 }
 
   # # # # #
@@ -227,14 +228,13 @@ EqKout <- function(parameters,fit){
   a <- parameters[4]
   Ts <- parameters[5]
   Tf <- parameters[6]
-  A <- parameters[7]
   EIs <- parameters[8]
   EIf <- parameters[9]
   
   for (i in soltime){
     partF <- fit[i+1,2]/(C+fit[i+1,2])
     partL <- 1-partF
-    kin <- fit[i+1,2]/A
+    kin <- K2 * EI(i, Ts, Tf, EIi, EIs, EIf)
     dF <- partF/pf * (EI(i, Ts, Tf, EIi, EIs, EIf) - EE(i, Ts, Tf, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3]))
     Kout <- c(Kout, unname((kin - dF)/fit[i+1,2]))
   }
@@ -387,9 +387,9 @@ R_sefinal <- sqrt(R_mse * (1/R_n + 1 + (7000-mean(EIfinal[gr])^2/R_ssfinal)))
 
 
 #BESTFIT AND PREDICTION INTERVAL
-R_init <- c(fatmass = R_FM0,leanmass = R_LM0)#, age = R_LA0)
-R_initinf <- c(fatmass = R_FM0CI[1],leanmass = R_LM0CI[1])#, age = R_LA0CI[1])
-R_initsup <- c(fatmass = R_FM0CI[2],leanmass = R_LM0CI[2])#, age = R_LA0CI[2])
+R_init <- c(fatmass = R_FM0,leanmass = R_LM0, age = R_LA0)
+R_initinf <- c(fatmass = R_FM0CI[1],leanmass = R_LM0CI[1], age = R_LA0CI[1])
+R_initsup <- c(fatmass = R_FM0CI[2],leanmass = R_LM0CI[2], age = R_LA0CI[2])
 R_EIsurg <- R_Fit$par[1]
 R_EIfinal <- R_Fit$par[2]
 R_EIsurgCI <- unname(c(R_EIsurg + R_sesurg*qt(0.05, R_n-2), R_EIsurg + R_sesurg*qt(0.95, R_n-2)))
@@ -465,14 +465,16 @@ title(main="Energy rates")
 legend("bottomright", cex = 0.7, lty=c(1,2), col=c(2,2), legend=c("Average energy expenditure rate", "Expected inter-individual EE variability"))
 
 #LIPID AGE GRAPH
-plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
-lines(soltime, R_fitinf[,4], lty=2)
-lines(soltime, R_fitsup[,4], lty=2)
-title(main="Lipid Age")
+# plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
+# lines(soltime, R_fitinf[,4], lty=2)
+# lines(soltime, R_fitsup[,4], lty=2)
+# title(main="Lipid Age")
 
 plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
 lines(soltime, R_fitinf2[,4], lty=2)
 lines(soltime, R_fitsup2[,4], lty=2)
+points(T2[gr], LA2[gr])
+points(T5[gr], LA5[gr])
 title(main="Lipid Age")
 
 #Kout GRAPH
@@ -526,9 +528,9 @@ S_sefinal <- sqrt(S_mse * (1/S_n + 1 + (7000-mean(EIfinal[gs])^2/S_ssfinal)))
 
 #BESTFIT AND PREDICTION INTERVAL
 
-S_init <- c(fatmass = S_FM0,leanmass = S_LM0)#, age = S_LA0)
-S_initinf <- c(fatmass = S_FM0CI[1],leanmass = S_LM0CI[1])#, age = S_LA0CI[1])
-S_initsup <- c(fatmass = S_FM0CI[2],leanmass = S_LM0CI[2])#, age = S_LA0CI[2])
+S_init <- c(fatmass = S_FM0,leanmass = S_LM0, age = S_LA0)
+S_initinf <- c(fatmass = S_FM0CI[1],leanmass = S_LM0CI[1], age = S_LA0CI[1])
+S_initsup <- c(fatmass = S_FM0CI[2],leanmass = S_LM0CI[2], age = S_LA0CI[2])
 S_EIsurgCI <- unname(c(S_EIsurg + S_sesurg*qt(0.05, S_n-2), S_EIsurg + S_sesurg*qt(0.95, S_n-2)))
 S_EIfinalCI <- unname(c(S_EIfinal + S_sefinal*qt(0.05, S_n-2), S_EIfinal + S_sefinal*qt(0.95, S_n-2)))
 S_bestfit <- lsoda(y=S_init, times=soltime, func = EqBWLA, parms = c(S_parameters,S_EIsurg, S_EIfinal))
@@ -602,10 +604,10 @@ legend("bottomright", cex = 0.7, lty=c(1,2), col=c(2,2), legend=c("Average energ
 
 
 # LIPID AGE GRAPH
-plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
-lines(soltime, S_fitinf[,4], lty=2)
-lines(soltime, S_fitsup[,4], lty=2)
-title(main="Lipid Age")
+# plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
+# lines(soltime, S_fitinf[,4], lty=2)
+# lines(soltime, S_fitsup[,4], lty=2)
+# title(main="Lipid Age")
 
 plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)")
 lines(soltime, S_fitinf2[,4], lty=2)
@@ -615,10 +617,17 @@ points(T5[gs], LA5[gs])
 title(main="Lipid Age")
 
 #Kout GRAPH
-plot(soltime, S_Kout, type="l", xlab="Days", ylab="Kout (/d)")
+plot(soltime, S_Kout, type="l", xlab="Days", ylab="Kout (/d)")#, ylim=c(0.0009, 0.0023))
 # lines(soltime, S_Koutinf2, lty=2)
 # lines(soltime, S_Koutsup2, lty=2)
 title(main="Kout")
+
+
+
+
+
+
+
 
 ############################
 # MEAN COMPAR TEST R AND S #
@@ -631,14 +640,6 @@ comp5 <- t.test(LA0[gr], R_bestfit[T5[gr], 4])
 comp6 <- t.test(R_bestfit[T2[gr], 4], R_bestfit[T5[gr], 4])
 comp7 <- t.test(LA0[gs], S_bestfit[T5[gs], 4])
 comp8 <- t.test(S_bestfit[T2[gs], 4], S_bestfit[T5[gs], 4])
-
-
-
-
-
-
-
-
 
 #######################
 # COMPARISON BOXPLOTS #
