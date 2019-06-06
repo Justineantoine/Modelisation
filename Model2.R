@@ -253,6 +253,7 @@ EqKout <- function(parameters,fit){
 #################################################
 # PLOT FM AND BODY WEIGHT, EE AND EI, LIPID AGE #
 #################################################
+graphKout <- c()
 for (k in 1:41){
   graphtime <- seq(-100,2200)
   parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])
@@ -263,59 +264,64 @@ for (k in 1:41){
   # EI AND EE #
   # # # # # # #
   
-  graphEI= rep(EI0[k], 100)
-  graphEE = rep(EE0[k], 100)
-  for (i in 101:2301){
-    graphEI[i] <- EI(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k])
-    graphEE[i] <- EE(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k], K[k], H[k], age0[k], bestfit[i-100,2], bestfit[i-100,3])
-  }
-  
-  plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
-  lines(graphtime, graphEE, type ="l", lty = 1, col=2)
-  title(main=c("Energy rates for patient : ", k))
-  legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
-  
+  # graphEI= rep(EI0[k], 100)
+  # graphEE = rep(EE0[k], 100)
+  # for (i in 101:2301){
+  #   graphEI[i] <- EI(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k])
+  #   graphEE[i] <- EE(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k], K[k], H[k], age0[k], bestfit[i-100,2], bestfit[i-100,3])
+  # }
+  # 
+  # plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
+  # lines(graphtime, graphEE, type ="l", lty = 1, col=2)
+  # title(main=c("Energy rates for patient : ", k))
+  # legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
+  # 
   # # # # # # # # #
   # BW, LM AND FM #
   # # # # # # # # #
   
-  graphFM <- c(rep(FM0[k], 100), bestfit[,2])
-  graphLM <- c(rep(LM0[k], 100), bestfit[,3])
-  graphBW <- c(rep(BW0[k], 100), bestfit[,2]+bestfit[,3])
-  
-  plot(graphtime, graphFM, type="l", ylim=c(0,160), xlab="Days", ylab="Weight in kg")
-  lines(graphtime, graphBW, type = "l", lty =1, col=4)
-  lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
-  points(T0[k], FM0[k], pch=19)
-  points(T2[k], FM2[k], pch=19)
-  points(T5[k], FM5[k], pch=19)
-  points(T0[k], BW0[k], pch=19, col=4)
-  points(T2[k], BW2[k], pch=19, col=4)
-  points(T5[k], BW5[k], pch=19, col=4)
-  points(T0[k], LM0[k], pch=3, col="dodgerblue4")
-  points(T2[k], LM2[k], pch=3, col="dodgerblue4")
-  points(T5[k], LM5[k], pch=3, col="dodgerblue4")
-  title(main=c("BodyWeight time course for patient : ", k))
-  legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
+  # graphFM <- c(rep(FM0[k], 100), bestfit[,2])
+  # graphLM <- c(rep(LM0[k], 100), bestfit[,3])
+  # graphBW <- c(rep(BW0[k], 100), bestfit[,2]+bestfit[,3])
+  # 
+  # plot(graphtime, graphFM, type="l", ylim=c(0,160), xlab="Days", ylab="Weight in kg")
+  # lines(graphtime, graphBW, type = "l", lty =1, col=4)
+  # lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
+  # points(T0[k], FM0[k], pch=19)
+  # points(T2[k], FM2[k], pch=19)
+  # points(T5[k], FM5[k], pch=19)
+  # points(T0[k], BW0[k], pch=19, col=4)
+  # points(T2[k], BW2[k], pch=19, col=4)
+  # points(T5[k], BW5[k], pch=19, col=4)
+  # points(T0[k], LM0[k], pch=3, col="dodgerblue4")
+  # points(T2[k], LM2[k], pch=3, col="dodgerblue4")
+  # points(T5[k], LM5[k], pch=3, col="dodgerblue4")
+  # title(main=c("BodyWeight time course for patient : ", k))
+  # legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
   
   # # # # # # #
   # LIPID AGE #
   # # # # # # #
   
-  graphA <- c(rep(LA0[k], 100), bestfit[,4])
-  plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age", ylim=c(0, 2700))
-  title(main=c("Lipid age for patient : ", k))
+  # graphA <- c(rep(LA0[k], 100), bestfit[,4])
+  # plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age", ylim=c(0, 2700))
+  # title(main=c("Lipid age for patient : ", k))
 
 
   # # # # #
   # K OUT #
   # # # # #
 
-  graphKout <- EqKout(parameters, bestfit)
-  plot(soltime, graphKout, type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0, 0.1))
+  graphKout <- cbind(graphKout, EqKout(parameters, bestfit))
+  plot(soltime, EqKout(parameters, bestfit), type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0, 0.01))
   title(main=c("Kout for patient : ", k))
-  
+}  
+
+plot(soltime, graphKout[,1], type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0, 0.01))
+for (i in 2:41){
+  lines(soltime, graphKout[,i])
 }
+title(main="Kout for all patients")
 ####################
 # AVERAGE PATIENTS #
 ####################
@@ -442,7 +448,7 @@ lines(soltime, R_BMIinf, type='l', lty=2)
 lines(soltime, R_BMIsup, type='l', lty=2)
 points(T2[gr], BMI2[gr])
 points(T5[gr], BMI5[gr])
-title(main="BMI")
+title(main="BMI Rebounders")
 legend("topleft", cex=0.7, lty=c(1,2), col=c(1,1), legend=c("Average BMI", "Expected inter-individual BMI variability"))
 
 plot(soltime, R_BMI, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50))
@@ -450,46 +456,46 @@ lines(soltime, R_BMIinf2, type='l', lty=2)
 lines(soltime, R_BMIsup2, type='l', lty=2)
 points(T2[gr], BMI2[gr])
 points(T5[gr], BMI5[gr])
-title(main="BMI")
+title(main="BMI Rebounders")
 legend("topleft", cex=0.7, lty=c(1,2), col=c(1,1), legend=c("Average BMI", "Expected inter-individual BMI variability"))
 
 
 #ENERGY RATES GRAPHS
 plot(soltime, R_EI, type="l", ylim=c(7000, 14000), xlab="Days", ylab="Energy rates (kJ/d)")
 lines(soltime, R_EE, type="l", col=2)
-title(main="Energy rates")
+title(main="Energy rates Rebounders")
 legend("bottomright", cex = 0.7, lty=c(1,1), col=c(1,2), legend=c("Average energy intake rate", "Average energy expenditure rate"))
 
 plot(soltime, R_EI, type="l", ylim=c(7000, 14000), xlab="Days", ylab="Energy Intake rate (kJ/d)")
 lines(soltime, R_EIinf, lty=2)
 lines(soltime, R_EIsup, lty=2)
-title(main="Energy rates")
+title(main="Energy rates Rebounders")
 legend("bottomright", cex = 0.7, lty=c(1,2), legend=c("Average energy intake rate", "Expected inter-individual EI variability"))
 
 plot(soltime, R_EE, type="l", col=2, ylim=c(8500, 13000), xlab="Days", ylab="Energy Expenditure rate (kJ/d)")
 lines(soltime, R_EEinf, col=2, lty=2)
 lines(soltime, R_EEsup, col=2, lty=2)
-title(main="Energy rates")
+title(main="Energy rates Rebounders")
 legend("bottomright", cex = 0.7, lty=c(1,2), col=c(2,2), legend=c("Average energy expenditure rate", "Expected inter-individual EE variability"))
 
 #LIPID AGE GRAPH
-plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
-lines(soltime, R_fitinf[,4], lty=2)
-lines(soltime, R_fitsup[,4], lty=2)
-title(main="Lipid Age")
+# plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
+# lines(soltime, R_fitinf[,4], lty=2)
+# lines(soltime, R_fitsup[,4], lty=2)
+# title(main="Lipid Age Rebounders")
 
-plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
+plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(min(R_fitinf2[,4]), max(R_fitsup2[,4])))
 lines(soltime, R_fitinf2[,4], lty=2)
 lines(soltime, R_fitsup2[,4], lty=2)
 points(T2[gr], LA2[gr])
 points(T5[gr], LA5[gr])
-title(main="Lipid Age")
+title(main="Lipid Age Rebounders")
 
 #Kout GRAPH
 plot(soltime, R_Kout, type="l", xlab="Days", ylab="Kout (/d)", ylim=c(min(R_Koutsup2), max(R_Koutinf2)))
 lines(soltime, R_Koutinf2, lty=2)
 lines(soltime, R_Koutsup2, lty=2)
-title(main="Kout")
+title(main="Kout Rebounders")
 
 
 
@@ -580,7 +586,7 @@ lines(soltime, S_BMIinf, type='l', lty=2, col=4)
 lines(soltime, S_BMIsup, type='l', lty=2, col=4)
 points(T2[gs], BMI2[gs], col=4)
 points(T5[gs], BMI5[gs], col=4)
-title(main="BMI")
+title(main="BMI Weight stable")
 legend("topleft", cex=0.7, lty=c(1,2), col=c(4,4), legend=c("Average BMI", "Expected inter-individual BMI variability"))
 
 plot(soltime, S_BMI, type='l', xlab = "Days", ylab="BMI (kg/m²)", ylim=c(20,50), col=4)
@@ -588,47 +594,47 @@ lines(soltime, S_BMIinf2, type='l', lty=2, col=4)
 lines(soltime, S_BMIsup2, type='l', lty=2, col=4)
 points(T2[gs], BMI2[gs], col=4)
 points(T5[gs], BMI5[gs], col=4)
-title(main="BMI")
+title(main="BMI Weight stable")
 legend("topleft", cex=0.7, lty=c(1,2), col=c(4,4), legend=c("Average BMI", "Expected inter-individual BMI variability"))
 
 
 #ENERGY RATES GRAPHS
 plot(soltime, S_EI, type="l", ylim=c(7000, 14000), xlab="Days", ylab="Energy rates (kJ/d)")
 lines(soltime, S_EE, type="l", col=2)
-title(main="Energy rates")
+title(main="Energy rates Weight stable")
 legend("bottomright", cex = 0.7, lty=c(1,1), col=c(1,2), legend=c("Average energy intake rate", "Average energy expenditure rate"))
 
 plot(soltime, S_EI, type="l", ylim=c(5800, 12000), xlab="Days", ylab="Energy intake rate (kJ/d)")
 lines(soltime, S_EIinf, lty=2)
 lines(soltime, S_EIsup, lty=2)
-title(main="Energy rates")
+title(main="Energy rates Weight stable")
 legend("bottomright", cex = 0.7, lty=c(1,2), legend=c("Average energy intake rate", "Expected inter-individual EI variability"))
 
 plot(soltime, S_EE, type="l", col=2, ylim=c(7500, 12000), xlab="Days", ylab="Energy expenditure rate (kJ/d)")
 lines(soltime, S_EEinf, col=2, lty=2)
 lines(soltime, S_EEsup, col=2, lty=2)
-title(main="Energy rates")
+title(main="Energy rates Weight stable")
 legend("bottomright", cex = 0.7, lty=c(1,2), col=c(2,2), legend=c("Average energy expenditure rate", "Expected inter-individual EE variability"))
 
 
 # LIPID AGE GRAPH
-plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
-lines(soltime, S_fitinf[,4], lty=2)
-lines(soltime, S_fitsup[,4], lty=2)
-title(main="Lipid Age")
+# plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
+# lines(soltime, S_fitinf[,4], lty=2)
+# lines(soltime, S_fitsup[,4], lty=2)
+# title(main="Lipid Age Weight stable")
 
-plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)")
+plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(min(S_fitinf2[,4]), max(S_fitsup2[,4])))
 lines(soltime, S_fitinf2[,4], lty=2)
 lines(soltime, S_fitsup2[,4], lty=2)
 points(T2[gs], LA2[gs])
 points(T5[gs], LA5[gs])
-title(main="Lipid Age")
+title(main="Lipid Age Weight stable")
 
 #Kout GRAPH
 plot(soltime, S_Kout, type="l", xlab="Days", ylab="Kout (/d)", ylim=c(min(S_Koutsup2), max(S_Koutinf2)))
 lines(soltime, S_Koutinf2, lty=2)
 lines(soltime, S_Koutsup2, lty=2)
-title(main="Kout")
+title(main="Kout Weight stable")
 
 
 ############################
@@ -643,14 +649,4 @@ comp6 <- t.test(R_bestfit[T2[gr], 4], R_bestfit[T5[gr], 4])
 comp7 <- t.test(LA0[gs], S_bestfit[T5[gs], 4])
 comp8 <- t.test(S_bestfit[T2[gs], 4], S_bestfit[T5[gs], 4])
 
-#######################
-# COMPARISON BOXPLOTS #
-#######################
-Data <- data.frame(type= c(rep("R", length(gr)), rep("S", length(gs))), T0 = c(LA0[gr], LA0[gs]), T2 = c(R_bestfit[T2[gr], 4], S_bestfit[T2[gs], 4]), T5 = c(R_bestfit[T5[gr], 4], S_bestfit[T5[gs], 4]))
-boxplot(Data$T0~Data$type, names=c("Rebounders", "Weight stable"))
-title(main = c("p_value = ", round(comp2$p.value, digits=3)), cex.main = 0.7, ylab="Predicted lipid age at year 0")
-
-####################
-# CORRELATION TEST #
-####################
 
