@@ -190,6 +190,8 @@ for (i in 1:41){
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
 }
+
+write.csv(cbind(EIsurg, EIfinal), file = "Intakes.csv")
   
   # # # # # # #
   # LIPID AGE #
