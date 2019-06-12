@@ -59,16 +59,8 @@ T5 <- dat$T5
 # LIPID AGE AND TURNOVER #
 ##########################
 LA0 <- dat$LA0*365
-# LA2 <- dat$LA2*365
-# LA5 <- dat$LA5*365
-# 
-# kout0 <- dat$TO0
-# kout2 <- dat$TO2
-# kout5 <- dat$TO5
-# 
-# kin0 <- kout0 * FM0
-# kin2 <- kout2 * FM2
-# kin5 <- kout5 * FM5
+LA2 <- dat$LA2*365
+LA5 <- dat$LA5*365
 
 ##############
 # PARAMETERS #
@@ -104,9 +96,10 @@ EI0 <- (10*BW0 + 625*H -5*age0-161)*1.5*4.184
 EIsurg <- c()
 EIfinal <- c()
 
-EI <- function(t, Ts, Tf, EIi, EIs, EIf) #i pour l'individu auquel on s'interesse
+EI <- function(t, Ts, Tf, EIi, EIs, EIf)
 {
-  s = (EIf-EIs)/(Tf-Ts) #garde le regime pendant 150 jours (~5 mois) puis reprise progressive de nourriture jusqu'au 900eme jour (~3 ans)
+  #' Return the Energy Intake course of a patient. Adherence to the diet during Ts, then a linear intake recovery until stabilisation at Tf
+  s = (EIf-EIs)/(Tf-Ts)
   if (t<=0){
     EIi
     
@@ -127,6 +120,20 @@ EI <- function(t, Ts, Tf, EIi, EIs, EIf) #i pour l'individu auquel on s'interess
   }
 }
 
+EI2 <- function(t, Ts, EIi, EIs, EIf)
+{
+  #' Return the Energy Intake course of a patient. Adherence to the diet during Ts and then a stable intake recovery.
+  if (t<=0){
+    EIi
+  }
+  else if (t<=Ts){
+    EIs
+  }
+  else{
+    EIf
+  }
+}
+
 ##############################
 # INITIAL ENERGY EXPENDITURE #
 ##############################
@@ -138,6 +145,15 @@ EE <- function(t, Ts, Tf, EIi, EIs, EIf, k, h, a, FM, LM){
   partF <- FM/(C+FM)
   partL <- 1-partF
   result <- (k + gf*FM + gl*LM + PA - EIi*B + EI(t, Ts, Tf, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
+  result
+}
+
+EE2 <- function(t, Ts, EIi, EIs, EIf, k, h, a, FM, LM){
+  B <- Btef+Bat*(1-exp(-t/tau))
+  PA <- ((1-Btef)*1.5-1)*4.184*(10*(FM+LM)+625*h-5*(a+t/365)-161)
+  partF <- FM/(C+FM)
+  partL <- 1-partF
+  result <- (k + gf*FM + gl*LM + PA - EIi*B + EI2(t, Ts, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
   result
 }
 
@@ -171,6 +187,23 @@ EqBW <- function(t, y, parameters){
 
   dF <- partF/pf * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dL <- partL/pl * (EI(t, Ts, Tf, EIi, EIs, EIf) - EE(t, Ts, Tf, EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  list(c(dF, dL)) 
+}
+
+EqBW2 <- function(t, y, parameters){
+  
+  EIi <- parameters[1]
+  k <- parameters[2]
+  h <- parameters[3]
+  a <- parameters[4]
+  Ts <- parameters[5]
+  EIs <- parameters[6]
+  EIf <- parameters[7]
+  partF <- y[1]/(C+y[1])
+  partL <- 1-partF
+  
+  dF <- partF/pf * (EI2(t, Ts, EIi, EIs, EIf) - EE2(t, Ts, EIi, EIs, EIf, k, h, a, y[1], y[2]))
+  dL <- partL/pl * (EI2(t, Ts, EIi, EIs, EIf) - EE2(t, Ts, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   list(c(dF, dL)) 
 }
 
@@ -491,11 +524,6 @@ title(main="Energy rates Rebounders")
 legend("bottomright", cex = 0.7, lty=c(1,2), col=c(2,2), legend=c("Average energy expenditure rate", "Expected inter-individual EE variability"))
 
 #LIPID AGE GRAPH
-# plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
-# lines(soltime, R_fitinf[,4], lty=2)
-# lines(soltime, R_fitsup[,4], lty=2)
-# title(main="Lipid Age Rebounders")
-
 plot(soltime, R_bestfit[,4], type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(min(R_fitinf2[,4]), max(R_fitsup2[,4])))
 lines(soltime, R_fitinf2[,4], lty=2)
 lines(soltime, R_fitsup2[,4], lty=2)
@@ -630,11 +658,6 @@ legend("bottomright", cex = 0.7, lty=c(1,2), col=c(2,2), legend=c("Average energ
 
 
 # LIPID AGE GRAPH
-# plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(500, 1500))
-# lines(soltime, S_fitinf[,4], lty=2)
-# lines(soltime, S_fitsup[,4], lty=2)
-# title(main="Lipid Age Weight stable")
-
 plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(min(S_fitinf2[,4]), max(S_fitsup2[,4])))
 lines(soltime, S_fitinf2[,4], lty=2)
 lines(soltime, S_fitsup2[,4], lty=2)
@@ -648,6 +671,49 @@ lines(soltime, S_Koutinf2, lty=2)
 lines(soltime, S_Koutsup2, lty=2)
 title(main="Kout Weight stable")
 
+
+############################
+# COMPARISON TO BW PLANNER #
+############################
+ind <- 38
+dat2 <- read.table(file = "planner.csv", sep= ',', header = TRUE)
+ptime <- dat2$Day
+pBW <- dat2$Weight
+pFM <- dat2$FM
+pLM <- pBW - pFM
+pEI <- dat2$Intake
+pEE <- dat2$Expenditure
+pEIsurg <- pEI[1]
+pEIfinal <- pEI[length(pEI)]
+
+parametersc <- c(EI0[ind], K[ind], H[ind], age0[ind], 500, pEIsurg, pEIfinal)
+initc <- c(fatmass = FM0[ind],leanmass = LM0[ind])
+bestfitc <- lsoda(y=initc, times=soltime, func = EqBW2, parms = c(parametersc))
+
+graphEIc <- c()
+graphEEc <- c()
+for (i in 1:2201){
+  graphEIc[i] <- EI2(soltime[i], 500, EI0[ind], pEIsurg, pEIfinal)
+  graphEEc[i] <- EE2(soltime[i], 500, EI0[ind], pEIsurg, pEIfinal, K[ind], H[ind], age0[ind], bestfitc[i,2], bestfitc[i,3])
+}
+
+plot(soltime, graphEIc, type="l", xlab="Days", ylab="Energy rate ", col=1, xlim=c(0, 500), ylim=c(1000, 15000))
+lines(ptime, pEI, lty =2)
+lines(soltime, graphEEc, type ="l", lty = 1, col=2)
+lines(ptime, pEE, type ="l", lty = 2, col=2)
+legend("bottomright",lty=c(1,1,2,2), cex=0.7, col=c(1,2,1,2), legend=c("Energy Intake rate", "Energy Expenditure rate", "Planner EI", "Planner EE"))
+
+graphFMc <- bestfitc[,2]
+graphLMc <- bestfitc[,3]
+graphBWc <- bestfitc[,2]+bestfit[,3]
+
+plot(soltime, graphFMc, type="l", xlim=c(0, 500), ylim=c(0,140), xlab="Days", ylab="Weight in kg")
+lines(ptime, pFM, type = "l", lty =2)
+lines(soltime, graphBWc, type = "l", lty =1, col=4)
+lines(ptime, pBW, type = "l", lty =2, col=4)
+lines(soltime, graphLMc, type = "l", lty =1, col="dodgerblue4")
+lines(ptime, pLM, type = "l", lty =2, col="dodgerblue4")
+legend("bottomright", lty=c(1,1,1,2,2,2), legend=c("BW", "FM","LM", "Planner BW", "Planner FM", "Planner LM"), col=c(4,1,"dodgerblue4",4,1,"dodgerblue4"), cex=0.7)
 
 ############################
 # MEAN COMPAR TEST R AND S #
