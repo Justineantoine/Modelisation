@@ -319,9 +319,9 @@ lines(Tg, BMIgs, col=2)
 plotCI(Tg, BMIgs, uiw = errgs, lwd =2, col = 2, add =T)
 legend("topright", cex=0.7, lty=c(1,1), col=c(1,2), legend=c("Tertile 1 : rebounders", "Tertile 2-3 : weight stable"))
 
-#################################################
-# PLOT FM AND BODY WEIGHT, EE AND EI, LIPID AGE #
-#################################################
+##########################################################
+# PLOT FM AND BODY WEIGHT, EE AND EI, LIPID AGE AND KOUT #
+##########################################################
 graphKout <- c()
 for (k in c(gr,gs)){
   graphtime <- seq(-100,2200)
@@ -397,9 +397,10 @@ for (i in 2:39){
   }
   
 }
+legend("topright", legend=c("Rebounders", "Weight stable"), lty=c(1,1), col=c(1,2))
 title(main="Kout for all patients")
 
-
+    
 ####################
 # AVERAGE PATIENTS #
 ####################
