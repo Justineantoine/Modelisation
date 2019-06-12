@@ -21,7 +21,7 @@ FM5 <- dat$TBFD5
 adjust = subset(FM0/dat$TBFB0, is.na(FM0/dat$TBFB0)==F)
 mean_adjust = mean(adjust)
 
-FM0[18] <- mean_adjust*dat$TBFB0[18]
+FM0[17] <- mean_adjust*dat$TBFB0[17]
 
 #On a BW = LM + FM
 
@@ -44,14 +44,13 @@ BMI5 <- dat$BMI5
 
 adjust2 = subset(BMI1-BMI2, is.na(BMI1)==F)
 mean_adjust2 = mean(adjust2)
-BMI1[9] <- BMI2[9] - mean_adjust2
 BMI1[20] <- BMI2[20] - mean_adjust2
-BMI1[21] <- BMI2[21] - mean_adjust2
+BMI1[19] <- BMI2[19] - mean_adjust2
 
 ########
 # TIME #
 ########
-T0 <- rep(0,41)
+T0 <- rep(0,39)
 T2 <- dat$T2
 T1 <- T2/2
 T5 <- dat$T5
@@ -60,16 +59,16 @@ T5 <- dat$T5
 # LIPID AGE AND TURNOVER #
 ##########################
 LA0 <- dat$LA0*365
-LA2 <- dat$LA2*365
-LA5 <- dat$LA5*365
-
-kout0 <- dat$TO0
-kout2 <- dat$TO2
-kout5 <- dat$TO5
-
-kin0 <- kout0 * FM0
-kin2 <- kout2 * FM2
-kin5 <- kout5 * FM5
+# LA2 <- dat$LA2*365
+# LA5 <- dat$LA5*365
+# 
+# kout0 <- dat$TO0
+# kout2 <- dat$TO2
+# kout5 <- dat$TO5
+# 
+# kin0 <- kout0 * FM0
+# kin2 <- kout2 * FM2
+# kin5 <- kout5 * FM5
 
 ##############
 # PARAMETERS #
@@ -140,7 +139,7 @@ EE <- function(t, Ts, Tf, EIi, EIs, EIf, k, h, a, FM, LM){
   partL <- 1-partF
   result <- (k + gf*FM + gl*LM + PA - EIi*B + EI(t, Ts, Tf, EIi, EIs, EIf)*(B + partF*nf/pf + partL*nl/pl))/(1 + partF*nf/pf + partL*nl/pl)
   result
-  }
+}
 
 ##############################
 # K CONSTANT AND K2 CONSTANT #
@@ -175,7 +174,7 @@ EqBW <- function(t, y, parameters){
   list(c(dF, dL)) 
 }
 
-for (i in 1:41){
+for (i in 1:39){
   parameters <- c(EI0[i], K[i], H[i], age0[i], 500, 900)
   init <- c(fatmass = FM0[i],leanmass = LM0[i])
   Data <- data.frame(time = c(T2[i],T5[i]), fatmass = c(FM2[i],FM5[i]) , leanmass= c(LM2[i],LM5[i]))
@@ -186,7 +185,6 @@ for (i in 1:41){
   }
   
   Fit <- modFit(f = modelcost, p = c(7500,9800))
-
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
 }
@@ -252,89 +250,16 @@ EqKout <- function(parameters,fit){
   Kout
 }
 
-#################################################
-# PLOT FM AND BODY WEIGHT, EE AND EI, LIPID AGE #
-#################################################
-graphKout <- c()
-for (k in 1:41){
-  graphtime <- seq(-100,2200)
-  parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])
-  init <- c(fatmass = FM0[k],leanmass = LM0[k], age =LA0[k])
-  bestfit <- lsoda(y=init, times=soltime, func = EqBWLA, parms = c(parameters))
-  
-  # # # # # # #
-  # EI AND EE #
-  # # # # # # #
-  
-  # graphEI= rep(EI0[k], 100)
-  # graphEE = rep(EE0[k], 100)
-  # for (i in 101:2301){
-  #   graphEI[i] <- EI(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k])
-  #   graphEE[i] <- EE(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k], K[k], H[k], age0[k], bestfit[i-100,2], bestfit[i-100,3])
-  # }
-  # 
-  # plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
-  # lines(graphtime, graphEE, type ="l", lty = 1, col=2)
-  # title(main=c("Energy rates for patient : ", k))
-  # legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
-  # 
-  # # # # # # # # #
-  # BW, LM AND FM #
-  # # # # # # # # #
-  
-  # graphFM <- c(rep(FM0[k], 100), bestfit[,2])
-  # graphLM <- c(rep(LM0[k], 100), bestfit[,3])
-  # graphBW <- c(rep(BW0[k], 100), bestfit[,2]+bestfit[,3])
-  # 
-  # plot(graphtime, graphFM, type="l", ylim=c(0,160), xlab="Days", ylab="Weight in kg")
-  # lines(graphtime, graphBW, type = "l", lty =1, col=4)
-  # lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
-  # points(T0[k], FM0[k], pch=19)
-  # points(T2[k], FM2[k], pch=19)
-  # points(T5[k], FM5[k], pch=19)
-  # points(T0[k], BW0[k], pch=19, col=4)
-  # points(T2[k], BW2[k], pch=19, col=4)
-  # points(T5[k], BW5[k], pch=19, col=4)
-  # points(T0[k], LM0[k], pch=3, col="dodgerblue4")
-  # points(T2[k], LM2[k], pch=3, col="dodgerblue4")
-  # points(T5[k], LM5[k], pch=3, col="dodgerblue4")
-  # title(main=c("BodyWeight time course for patient : ", k))
-  # legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
-  
-  # # # # # # #
-  # LIPID AGE #
-  # # # # # # #
-  
-  # graphA <- c(rep(LA0[k], 100), bestfit[,4])
-  # plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age", ylim=c(0, 2700))
-  # title(main=c("Lipid age for patient : ", k))
-
-
-  # # # # #
-  # K OUT #
-  # # # # #
-
-  graphKout <- cbind(graphKout, EqKout(parameters, bestfit))
-  plot(soltime, EqKout(parameters, bestfit), type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0, 0.01))
-  title(main=c("Kout for patient : ", k))
-}  
-
-plot(soltime, graphKout[,1], type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0, 0.01))
-for (i in 2:41){
-  lines(soltime, graphKout[,i])
-}
-title(main="Kout for all patients")
-####################
-# AVERAGE PATIENTS #
-####################
-
+##################
+# PATIENT GROUPS #
+##################
 dBMI <- BMI0 - BMI5
 tertile<- unname(quantile(dBMI, probs = c(0.33, 0.67)))
 
 gr <- c()
 gs <- c()
 
-for (i in 1:41){
+for (i in 1:39){
   if (dBMI[i] <= tertile[1]){
     gr <- c(gr, i)
   }
@@ -360,6 +285,91 @@ plotCI(Tg, BMIgr, uiw = errgr, lwd =2, col = 1, add =T)
 lines(Tg, BMIgs, col=2)
 plotCI(Tg, BMIgs, uiw = errgs, lwd =2, col = 2, add =T)
 legend("topright", cex=0.7, lty=c(1,1), col=c(1,2), legend=c("Tertile 1 : rebounders", "Tertile 2-3 : weight stable"))
+
+#################################################
+# PLOT FM AND BODY WEIGHT, EE AND EI, LIPID AGE #
+#################################################
+graphKout <- c()
+for (k in c(gr,gs)){
+  graphtime <- seq(-100,2200)
+  if (k <= length(gr)){parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])}
+  else{parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])}
+  init <- c(fatmass = FM0[k],leanmass = LM0[k], age =LA0[k])
+  bestfit <- lsoda(y=init, times=soltime, func = EqBWLA, parms = c(parameters))
+  
+  # # # # # # #
+  # EI AND EE #
+  # # # # # # #
+  
+  graphEI= rep(EI0[k], 100)
+  graphEE = rep(EE0[k], 100)
+  for (i in 101:2301){
+    graphEI[i] <- EI(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k])
+    graphEE[i] <- EE(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k], K[k], H[k], age0[k], bestfit[i-100,2], bestfit[i-100,3])
+  }
+
+  plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
+  lines(graphtime, graphEE, type ="l", lty = 1, col=2)
+  title(main=c("Energy rates for patient : ", k))
+  legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
+
+  # # # # # # # # #
+  # BW, LM AND FM #
+  # # # # # # # # #
+  
+  graphFM <- c(rep(FM0[k], 100), bestfit[,2])
+  graphLM <- c(rep(LM0[k], 100), bestfit[,3])
+  graphBW <- c(rep(BW0[k], 100), bestfit[,2]+bestfit[,3])
+
+  plot(graphtime, graphFM, type="l", ylim=c(0,160), xlab="Days", ylab="Weight in kg")
+  lines(graphtime, graphBW, type = "l", lty =1, col=4)
+  lines(graphtime, graphLM, type = "l", lty =1, col="dodgerblue4")
+  points(T0[k], FM0[k], pch=19)
+  points(T2[k], FM2[k], pch=19)
+  points(T5[k], FM5[k], pch=19)
+  points(T0[k], BW0[k], pch=19, col=4)
+  points(T2[k], BW2[k], pch=19, col=4)
+  points(T5[k], BW5[k], pch=19, col=4)
+  points(T0[k], LM0[k], pch=3, col="dodgerblue4")
+  points(T2[k], LM2[k], pch=3, col="dodgerblue4")
+  points(T5[k], LM5[k], pch=3, col="dodgerblue4")
+  title(main=c("BodyWeight time course for patient : ", k))
+  legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
+  
+  # # # # # # #
+  # LIPID AGE #
+  # # # # # # #
+  
+  # graphA <- c(rep(LA0[k], 100), bestfit[,4])
+  # plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age", ylim=c(0, 2700))
+  # title(main=c("Lipid age for patient : ", k))
+
+
+  # # # # #
+  # K OUT #
+  # # # # #
+
+  graphKout <- cbind(graphKout, EqKout(parameters, bestfit))
+  # plot(soltime, EqKout(parameters, bestfit), type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0, 0.01))
+  # title(main=c("Kout for patient : ", k))
+}  
+
+plot(soltime, graphKout[,1], type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0.0002, 0.004))
+for (i in 2:39){
+  if (i > length(gr)){
+      lines(soltime, graphKout[,i], col=2)
+  }
+  else{
+    lines(soltime, graphKout[,i])
+  }
+  
+}
+title(main="Kout for all patients")
+
+
+####################
+# AVERAGE PATIENTS #
+####################
 
                   # # # # # # #
                   # REBOUNDER #
