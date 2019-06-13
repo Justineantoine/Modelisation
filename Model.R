@@ -322,34 +322,14 @@ legend("topright", cex=0.7, lty=c(1,1), col=c(1,2), legend=c("Tertile 1 : reboun
 ##########################################################
 # PLOT FM AND BODY WEIGHT, EE AND EI, LIPID AGE AND KOUT #
 ##########################################################
-graphKout <- c()
-for (k in c(gr,gs)){
-  graphtime <- seq(-100,2200)
-  if (k <= length(gr)){parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])}
-  else{parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])}
-  init <- c(fatmass = FM0[k],leanmass = LM0[k], age =LA0[k])
-  bestfit <- lsoda(y=init, times=soltime, func = EqBWLA, parms = c(parameters))
-  
-  # # # # # # #
-  # EI AND EE #
-  # # # # # # #
-  
-  graphEI= rep(EI0[k], 100)
-  graphEE = rep(EE0[k], 100)
-  for (i in 101:2301){
-    graphEI[i] <- EI(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k])
-    graphEE[i] <- EE(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k], K[k], H[k], age0[k], bestfit[i-100,2], bestfit[i-100,3])
-  }
-
-  plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
-  lines(graphtime, graphEE, type ="l", lty = 1, col=2)
-  title(main=c("Energy rates for patient : ", k))
-  legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
+graphtime <- seq(-100,2200)
+individuals <- c(gr,gs)
 
   # # # # # # # # #
   # BW, LM AND FM #
   # # # # # # # # #
-  
+indBW <- function(k, bestfit)
+{
   graphFM <- c(rep(FM0[k], 100), bestfit[,2])
   graphLM <- c(rep(LM0[k], 100), bestfit[,3])
   graphBW <- c(rep(BW0[k], 100), bestfit[,2]+bestfit[,3])
@@ -368,32 +348,111 @@ for (k in c(gr,gs)){
   points(T5[k], LM5[k], pch=3, col="dodgerblue4")
   title(main=c("BodyWeight time course for patient : ", k))
   legend("bottomright", lty=c(1,1,1), legend=c("BW", "FM","LM"), col=c(4,1,"dodgerblue4"), cex=0.7)
+}
+
+  # # # # # # #
+  # EI AND EE #
+  # # # # # # #
+indE <- function(k, bestfit)
+{
+  graphEI <- rep(EI0[k], 100)
+  graphEE <- rep(EE0[k], 100)
+  for (i in 101:2301){
+    graphEI[i] <- EI(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k])
+    graphEE[i] <- EE(graphtime[i], 500, 900, EI0[k], EIsurg[k], EIfinal[k], K[k], H[k], age0[k], bestfit[i-100,2], bestfit[i-100,3])
+  }
+  
+  plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
+  lines(graphtime, graphEE, type ="l", lty = 1, col=2)
+  title(main=c("Energy rates for patient : ", k))
+  legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
+}
   
   # # # # # # #
   # LIPID AGE #
   # # # # # # #
+indLA <- function(k, bestfit) 
+{
+  graphA <- c(rep(LA0[k], 100), bestfit[,4])
   
-  # graphA <- c(rep(LA0[k], 100), bestfit[,4])
-  # plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age", ylim=c(0, 2700))
-  # title(main=c("Lipid age for patient : ", k))
-
+  plot(graphtime, graphA, type="l", xlab="Days", ylab="Lipid Age", ylim=c(0, 2700))
+  title(main=c("Lipid age for patient : ", k))
+}
 
   # # # # #
   # K OUT #
   # # # # #
+indKout <- function(k, parms, bestfit) 
+{
+  table <- EqKout(parms, bestfit)
+  graphKout <- c(rep(table[1], 100), table)
+  
+  plot(graphtime, graphKout, type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0, 0.01))
+  title(main=c("Turnover for patient : ", k))
 
-  graphKout <- cbind(graphKout, EqKout(parameters, bestfit))
-  # plot(soltime, EqKout(parameters, bestfit), type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0, 0.01))
-  # title(main=c("Kout for patient : ", k))
-}  
+} 
 
-plot(soltime, graphKout[,1], type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0.0002, 0.004))
-for (i in 2:39){
+  # # # # #
+  # PLOTS #
+  # # # # #
+indPlots <- function(BW=T, E=F, LA=F, Kout=F)
+{
+  for (k in c(gr,gs)){
+    if (k <= length(gr)){parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])}
+    else{parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])}
+    init <- c(fatmass = FM0[k],leanmass = LM0[k], age =LA0[k])
+    bestfit <- lsoda(y=init, times=soltime, func = EqBWLA, parms = c(parameters)) 
+    
+    if(BW){
+      indBW(k, bestfit)
+    }
+    
+    if(E){
+      indE(k, bestfit)
+    }
+    
+    if(LA){
+      indLA(k, bestfit)
+    }
+    
+    if(Kout){
+      indKout(k, parameters, bestfit)
+    }
+  }
+}
+
+
+
+indTables <- function()
+{
+  LAdata <- c()
+  Koutdata <- c()
+  allKout <- c()
+  for (k in 1:39){
+    parameters <- c(EI0[k], K[k], H[k], age0[k], 500, 900, EIsurg[k], EIfinal[k])
+    init <- c(fatmass = FM0[k],leanmass = LM0[k], age =LA0[k])
+    bestfit <- lsoda(y=init, times=soltime, func = EqBWLA, parms = c(parameters))
+    
+    LAdata <- cbind(LAdata, c(T0 = unname(bestfit[1,4]), T2 = unname(bestfit[T2[k],4]), T5 = unname(bestfit[T5[k],4])))
+    allKout <- cbind(allKout, EqKout(parameters, bestfit))
+    Koutdata <- cbind(Koutdata, c(T0 = allKout[1,k], T2 = allKout[T2[k],k], T5 = allKout[T5[k],k]))
+  }
+  
+  list(LAdata, Koutdata, allKout)
+}
+
+tables <- indTables()
+LAdata <- tables[[1]]
+Koutdata <- tables[[2]]
+allKout <- tables[[3]]
+
+plot(soltime, allKout[,1], type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0.0002, 0.004))
+for (i in 1:39){
   if (i > length(gr)){
-      lines(soltime, graphKout[,i], col=2)
+      lines(soltime, allKout[,individuals[i]], col=2)
   }
   else{
-    lines(soltime, graphKout[,i])
+    lines(soltime, allKout[,individuals[i]])
   }
   
 }
@@ -727,5 +786,8 @@ comp5 <- t.test(LA0[gr], R_bestfit[T5[gr], 4])
 comp6 <- t.test(R_bestfit[T2[gr], 4], R_bestfit[T5[gr], 4])
 comp7 <- t.test(LA0[gs], S_bestfit[T5[gs], 4])
 comp8 <- t.test(S_bestfit[T2[gs], 4], S_bestfit[T5[gs], 4])
+
+
+
 
 
