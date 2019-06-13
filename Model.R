@@ -218,8 +218,6 @@ for (i in 1:39){
   EIsurg[i] <- Fit$par[1]
   EIfinal[i] <- Fit$par[2]
 }
-
-write.csv(cbind(EI0, EIsurg, EIfinal), file = "Intakes.csv", sep=";", dec=",")
   
   # # # # # # #
   # LIPID AGE #
@@ -428,16 +426,15 @@ indTables <- function()
     k <- individuals[i]
     parameters <- c(EI0[k], K[k], H[k], age0[k], EIsurg[k], EIfinal[k])
     if (i > length(gr)){
-      print(k)
       init <- c(fatmass = FM0[k],leanmass = LM0[k], age =mean(LA0[gs]))
     }
     else{init <- c(fatmass = FM0[k],leanmass = LM0[k], age =mean(LA0[gr]))}
     bestfit <- lsoda(y=init, times=soltime, func = EqBWLA, parms = c(parameters))
     
     allLA <- cbind(allLA, unname(bestfit[,4]))
-    LAdata <- cbind(LAdata, c(T0 = allLA[1,i], T2 = allLA[T2[i],i], T5 = allLA[T5[i],i]))
+    LAdata <- rbind(LAdata, c(T0 = allLA[1,i], T2 = allLA[T2[i],i], T5 = allLA[T5[i],i]))
     allKout <- cbind(allKout, EqKout(parameters, bestfit))
-    Koutdata <- cbind(Koutdata, c(T0 = allKout[1,i], T2 = allKout[T2[i],i], T5 = allKout[T5[i],i]))
+    Koutdata <- rbind(Koutdata, c(T0 = allKout[1,i], T2 = allKout[T2[i],i], T5 = allKout[T5[i],i]))
   }
   
   list(LAdata, allLA, Koutdata, allKout)
@@ -481,6 +478,13 @@ legend("topright", legend=c("Rebounders", "Weight stable"), lty=c(1,1), col=c(1,
 
 
     
+##################################
+# INDIVIDUAL INFORMATION STORAGE #
+##################################
+write.csv(cbind(EI0, EIsurg, EIfinal, EI0-EIfinal), file = "Intakes.csv")
+write.csv(cbind(LAdata, Delta = LAdata[,1]-LAdata[,3]), file = "LipidAge.csv")
+write.csv(cbind(Koutdata, Delta = Koutdata[,1]-Koutdata[,3]), file = "Kout.csv")
+write.csv(cbind(K2*EI0, K2*EIsurg, K2*EIfinal, K2*(EI0-EIfinal)), file = "Kin.csv")
 ####################
 # AVERAGE PATIENTS #
 ####################
