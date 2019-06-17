@@ -303,12 +303,15 @@ errgr <- c(st_error(BMI0[gr]), st_error(BMI1[gr]), st_error(BMI2[gr]), st_error(
 BMIgs <- c(mean(BMI0[gs]), mean(BMI1[gs]), mean(BMI2[gs]), mean(BMI5[gs]))
 errgs <- c(st_error(BMI0[gs]), st_error(BMI1[gs]), st_error(BMI2[gs]), st_error(BMI5[gs]))
 
+groupsBMI <- function(){
+  #' Plot the BMI time course of each group of patients
+  plot(Tg, BMIgr, type = "l", ylim=c(25, 47), xlab="Year of investigation", ylab="BMI (kg/m²)")
+  plotCI(Tg, BMIgr, uiw = errgr, lwd =2, col = 1, add =T)
+  lines(Tg, BMIgs, col=2)
+  plotCI(Tg, BMIgs, uiw = errgs, lwd =2, col = 2, add =T)
+  legend("topright", cex=0.7, lty=c(1,1), col=c(1,2), legend=c("Tertile 1 : rebounders", "Tertile 2-3 : weight stable"))
+}
 
-plot(Tg, BMIgr, type = "l", ylim=c(25, 47), xlab="Year of investigation", ylab="BMI (kg/m²)")
-plotCI(Tg, BMIgr, uiw = errgr, lwd =2, col = 1, add =T)
-lines(Tg, BMIgs, col=2)
-plotCI(Tg, BMIgs, uiw = errgs, lwd =2, col = 2, add =T)
-legend("topright", cex=0.7, lty=c(1,1), col=c(1,2), legend=c("Tertile 1 : rebounders", "Tertile 2-3 : weight stable"))
 
 ##########################################################
 # PLOT FM AND BODY WEIGHT, EE AND EI, LIPID AGE AND KOUT #
@@ -418,6 +421,7 @@ indPlots <- function(BW=T, E=F, LA=F, Kout=F)
 
 indTables <- function()
 {
+  #' Creates
   LAdata <- c()
   Koutdata <- c()
   allKout <- c()
@@ -425,18 +429,17 @@ indTables <- function()
   for (i in 1:39){
     k <- individuals[i]
     parameters <- c(EI0[k], K[k], H[k], age0[k], EIsurg[k], EIfinal[k])
-    if (i > length(gr)){
-      init <- c(fatmass = FM0[k],leanmass = LM0[k], age =mean(LA0[gs]))
-    }
-    else{init <- c(fatmass = FM0[k],leanmass = LM0[k], age =mean(LA0[gr]))}
+    init <- c(fatmass = FM0[k],leanmass = LM0[k], age = LA0[k])
     bestfit <- lsoda(y=init, times=soltime, func = EqBWLA, parms = c(parameters))
     
     allLA <- cbind(allLA, unname(bestfit[,4]))
-    LAdata <- rbind(LAdata, c(T0 = allLA[1,i], T2 = allLA[T2[i],i], T5 = allLA[T5[i],i]))
+    LAdata <- rbind(LAdata, c(patient = k, T0 = allLA[1,i], T2 = allLA[T2[i],i], T5 = allLA[T5[i],i]))
     allKout <- cbind(allKout, EqKout(parameters, bestfit))
-    Koutdata <- rbind(Koutdata, c(T0 = allKout[1,i], T2 = allKout[T2[i],i], T5 = allKout[T5[i],i]))
+    Koutdata <- rbind(Koutdata, c(patient = k, T0 = allKout[1,i], T2 = allKout[T2[i],i], T5 = allKout[T5[i],i]))
   }
   
+  colnames(allLA) <- individuals
+  colnames(allKout) <- individuals
   list(LAdata, allLA, Koutdata, allKout)
 }
 
@@ -450,32 +453,34 @@ allKout <- tables[[4]]
   # INTERINDIVIDUAL PLOTS #
   # # # # # # # # # # # # #
 
-plot(soltime, allKout[,1], type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0.0002, 0.004))
-for (i in 1:39){
-  if (i > length(gr)){
-      lines(soltime, allKout[,i], col=2)
+interPlots <- function(){
+  #' Plots the Kout and Lipid Age of each patient.
+  plot(soltime, allKout[,1], type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0.0002, 0.004))
+  for (i in 1:39){
+    if (i > length(gr)){
+        lines(soltime, allKout[,i], col=2)
+    }
+    else{
+      lines(soltime, allKout[,i])
+    }
+    
   }
-  else{
-    lines(soltime, allKout[,i])
-  }
+  title(main="Kout for all patients")
+  legend("topright", legend=c("Rebounders", "Weight stable"), lty=c(1,1), col=c(1,2))
   
-}
-title(main="Kout for all patients")
-legend("topright", legend=c("Rebounders", "Weight stable"), lty=c(1,1), col=c(1,2))
-
-plot(soltime, allLA[,1], type ="l", xlab="Days", ylab="Lipid Age (d)", ylim=c(200, 2000))
-for (i in 1:39){
-  if (i > length(gr)){
-    lines(soltime, allLA[,i], col=2)
+  plot(soltime, allLA[,1], type ="l", xlab="Days", ylab="Lipid Age (d)", ylim=c(0, 2700))
+  for (i in 1:39){
+    if (i > length(gr)){
+      lines(soltime, allLA[,i], col=2)
+    }
+    else{
+      lines(soltime, allLA[,i])
+    }
+    
   }
-  else{
-    lines(soltime, allLA[,i])
-  }
-  
+  title(main="Lipid Age for all patients")
+  legend("topright", legend=c("Rebounders", "Weight stable"), lty=c(1,1), col=c(1,2))
 }
-title(main="Lipid Age for all patients")
-legend("topright", legend=c("Rebounders", "Weight stable"), lty=c(1,1), col=c(1,2))
-
 
     
 ##################################
@@ -863,12 +868,51 @@ legend("bottomright", lty=c(1,1,1,2,2,2), legend=c("BW", "FM","LM", "Planner BW"
 ############################
 comp <- t.test(BMI0[gr], BMI0[gs])
 comp2 <- t.test(LA0[gr], LA0[gs])
-comp3 <- t.test(R_bestfit[T2[gr], 4], S_bestfit[T2[gs], 4])
-comp4 <- t.test(R_bestfit[T5[gr], 4], S_bestfit[T5[gs], 4])
-comp5 <- t.test(LA0[gr], R_bestfit[T5[gr], 4])
-comp6 <- t.test(R_bestfit[T2[gr], 4], R_bestfit[T5[gr], 4])
-comp7 <- t.test(LA0[gs], S_bestfit[T5[gs], 4])
-comp8 <- t.test(S_bestfit[T2[gs], 4], S_bestfit[T5[gs], 4])
+comp3 <- t.test(allLA[2201,1:13], allLA[2201,13:39])
+comp4 <- t.test(LA0[gr], allLA[2201,1:13])
+comp5 <- t.test(LA0[gs], allLA[2201,14:39])
+
+comp6 <- t.test(allLA[1,1:13], allLA[2201,1:13])
+comp7 <- t.test(allLA[1,14:39], allLA[2201,14:39])
+
+
+# sdr <- sd(R_bestfit[T0[gr]+1,4]-R_bestfit[T5[gr],4])
+sdr <- sd(LA0[gr]-LA5[gr])
+sds <- sd(LA0[gs]-LA5[gs])
+sdr2 <- sd(LA0[gr]-allLA[1:13,4])
+sds2 <- sd(LA0[gs]-allLA[14:39,4])
+deltaR <- mean(LA0[gr]-LA5[gr])
+deltaR2 <- mean(R_bestfit[1,4]-R_bestfit[2201,4])
+deltaS <- mean(LA0[gs]-LA5[gs])
+deltaS2 <- mean(S_bestfit[1,4]-S_bestfit[2201,4])
+
+deltaRS <- abs(deltaR-deltaS)
+deltaRS2 <- abs(deltaR2-deltaS2)
+
+power.t.test(n=13, delta=deltaR, sd=sdr)
+power.t.test(delta=deltaR, sd=sdr, power=0.8)
+power.t.test(n=13, sd=sdr, power=0.8)
+power.t.test(delta=deltaR2, sd=sdr2, power=0.8)
+power.t.test(n=13,delta=deltaR2, sd=sdr)
+
+power.t.test(n=26, delta=deltaS, sd=sds)
+power.t.test(delta=deltaS, sd=sds, power=0.8)
+power.t.test(n=26, sd=sds, power=0.8)
+power.t.test(delta=deltaS2, sd=sdr, power=0.8)
+power.t.test(n=26,delta=deltaS2, sd=sdr)
+
+
+power.t.test(n=13, delta=deltaRS, sd=sds, type="paired")
+power.t.test(n=13, delta=deltaRS, sd=sds)
+power.t.test(delta=deltaRS, sd=sds, p=0.8)
+power.t.test(n=13, sd=sds, p=0.8)
+
+power.t.test(n=13, delta=deltaRS2, sd=sds)
+power.t.test(delta=deltaRS2, sd=sds, p=0.8)
+power.t.test(n=13, sd=sds, p=0.8)
+
+
+
 
 
 
