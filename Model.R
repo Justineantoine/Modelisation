@@ -731,6 +731,16 @@ avE <- function(superposition = T, details = F)
   title(main="Energy rates for WS")
   legend("bottomright", cex=0.7, lty=c(1,4), col=c(2,2), legend=c("Average EI rate", "Average EE rate"))
   
+  plot(soltime, R_EI-R_EE, type="l", ylim=c(7000, 14000), xlab="Days", ylab="Delta energy (kJ/d)")
+  lines(soltime, R_EIinf-R_EEinf, type="l", lty=2)
+  lines(soltime, R_EIsup-R_EEsup, type="l", lty=2)
+  title(main="Energy imbalance for WR")
+  
+  plot(soltime, S_EI-S_EE, type="l", ylim=c(7000, 14000), xlab="Days", ylab="Delta energy (kJ/d)")
+  lines(soltime, S_EIinf-S_EEinf, type="l", lty=2)
+  lines(soltime, S_EIsup-S_EEsup, type="l", lty=2)
+  title(main="Energy imbalance for WS")
+  
   if(superposition){
     plot(soltime, R_EI, type="l", ylim=c(7000, 14000), xlab="Days", ylab="Energy rates (kJ/d)")
     lines(soltime, R_EE, lty=4)
