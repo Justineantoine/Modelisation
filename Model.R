@@ -55,6 +55,11 @@ T2 <- dat$T2
 T1 <- T2/2
 T5 <- dat$T5
 
+#from the first biopsy done
+T00 <- dat$T00
+T20 <- dat$T20
+T50 <- dat$T50
+
 ##########################
 # LIPID AGE AND TURNOVER #
 ##########################
@@ -356,7 +361,7 @@ indE <- function(k, bestfit)
     graphEE[i] <- EE(graphtime[i], EI0[k], EIsurg[k], EIfinal[k], K[k], H[k], age0[k], bestfit[i-100,2], bestfit[i-100,3])
   }
   
-  plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(1000, 15000))
+  plot(graphtime, graphEI, type="l", xlab="Days", ylab="Energy rate ", col=1, ylim=c(6000, 15000))
   lines(graphtime, graphEE, type ="l", lty = 1, col=2)
   title(main=c("Energy rates for patient : ", k))
   legend("bottomright",lty=c(1,1), cex=0.7, col=c(1,2), legend=c("Energy Intake rate", "Energy Expenditure rate"))
@@ -391,9 +396,8 @@ indKout <- function(k, parms, bestfit)
   # # # # # # # # #  #
 indPlots <- function(BW=T, E=F, LA=F, Kout=F)
 {
-  for (k in c(gr,gs)){
-    if (k <= length(gr)){parameters <- c(EI0[k], K[k], H[k], age0[k], EIsurg[k], EIfinal[k])}
-    else{parameters <- c(EI0[k], K[k], H[k], age0[k], EIsurg[k], EIfinal[k])}
+  for (k in 38:38){
+    parameters <- c(EI0[k], K[k], H[k], age0[k], EIsurg[k], EIfinal[k])
     init <- c(fatmass = FM0[k],leanmass = LM0[k], age =LA0[k])
     bestfit <- lsoda(y=init, times=soltime, func = EqBWLA, parms = c(parameters)) 
     
@@ -799,9 +803,13 @@ avLA <- function(superposition = T)
   
   if (superposition){
     plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(min(S_fitinf2[,4]), max(S_fitsup2[,4])), col=2)
-    lines(soltime, R_bestfit[,4]) 
+    lines(soltime, R_bestfit[,4])
+    lines(soltime, R_fitinf2[,4], lty=2)
+    lines(soltime, R_fitsup2[,4], lty=2)
+    lines(soltime, S_fitinf2[,4], lty=2, col=2)
+    lines(soltime, S_fitsup2[,4], lty=2, col=2)
     title(main="Lipid Age Comparison")
-    legend("topright", lty=c(1,1), col=c(1,2), legend=c("WR", "WS"))
+    legend("topright", lty=c(1,2,1,2), col=c(1,1,2,2), legend=c("WR", "WR Prediction Interval", "WS", "WS Prediction Interval"), cex=0.7)
   }
   
 }
@@ -929,3 +937,14 @@ power.t.test(n=13, sd=sds, p=0.8)
 
 
 
+
+
+
+plot(T00, BMI0, ylim=c(20, 55), xlim=c(0, 2885))
+points(T20, BMI2)
+points(T50, BMI5)
+
+plot(soltime, allLA[,1], type="l", ylim=c(0, 2700))
+for (k in 2:39){
+  lines(soltime, allLA[,k])
+}
