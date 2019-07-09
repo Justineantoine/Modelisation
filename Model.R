@@ -55,11 +55,6 @@ T2 <- dat$T2
 T1 <- T2/2
 T5 <- dat$T5
 
-#from the first biopsy done
-T00 <- dat$T00
-T20 <- dat$T20
-T50 <- dat$T50
-
 ##########################
 # LIPID AGE AND TURNOVER #
 ##########################
@@ -929,20 +924,13 @@ power.t.test(n=13, delta=deltaRS2, sd=sds)
 power.t.test(delta=deltaRS2, sd=sds, p=0.8)
 power.t.test(n=13, sd=sds, p=0.8)
 
+#############
+# SUP GRAPH #
+#############
 
-
-
-
-
-
-
-
-
-
-
-plot(T00, BMI0, ylim=c(20, 55), xlim=c(0, 2885))
-points(T20, BMI2)
-points(T50, BMI5)
+plot(T0, BMI0, ylim=c(20, 55), xlim=c(0, 2885))
+points(T2, BMI2)
+points(T5, BMI5)
 
 plot(soltime, allLA[,1], type="l", ylim=c(0, 2700))
 for (k in 2:39){
