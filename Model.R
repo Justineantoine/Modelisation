@@ -162,6 +162,7 @@ EE2 <- function(t, EIi, EIs, EIf, k, h, a, FM, LM){
 ##############################
 K <- EI0 - gf*FM0 - gl*LM0 - d0
 K2 <- 5e-6
+K3 <- 2e-5
 
 ################################
 # EDO SYSTEM : BW, LA AND Kout #
@@ -235,6 +236,10 @@ EqBWLA <- function(t, y, parameters){
   
   kin <- K2 * EI(t, EIi, EIs, EIf)
   
+  #Bad model
+  # if (EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2])< 0){kin <- 0}
+  # else{kin <- K3*(EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))}
+  
   dF <- partF/pf * (EI(t, EIi, EIs, EIf) - EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dL <- partL/pl * (EI(t, EIi, EIs, EIf) - EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dA <- 1 - kin*y[3]/y[1]
@@ -263,7 +268,7 @@ EqKout <- function(parameters,fit){
     kin <- K2 * EI(i, EIi, EIs, EIf)
     
     # if (EI(i, EIi, EIs, EIf) - EE(i, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3])< 0){kin <- 0}
-    # else{kin <- EI(i, EIi, EIs, EIf) - EE(i, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3])}
+    # else{kin <- K3*(EI(i, EIi, EIs, EIf) - EE(i, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3]))}
     
     # kin <- fit[i+1,2]/A0
     
@@ -797,14 +802,16 @@ avLA <- function(superposition = T)
   legend("topright", cex = 0.7, lty=c(1,2), col=c(2,2), legend=c("Average LA", "Prediction Interval"))
   
   if (superposition){
-    plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(min(S_fitinf2[,4]), max(S_fitsup2[,4])), col=2)
+    plot(soltime, S_bestfit[,4] , type ="l", xlab = "Days", ylab="Lipid Age (d)", ylim=c(0, max(c(LA0, LA2, LA5))), col=2)
     lines(soltime, R_bestfit[,4])
-    lines(soltime, R_fitinf2[,4], lty=2)
-    lines(soltime, R_fitsup2[,4], lty=2)
-    lines(soltime, S_fitinf2[,4], lty=2, col=2)
-    lines(soltime, S_fitsup2[,4], lty=2, col=2)
+    points(T0[gs], LA0[gs], col = 2)
+    points(T2[gs], LA2[gs], col = 2)
+    points(T5[gs], LA5[gs], col = 2)
+    points(T5[gr], LA5[gr], col = 1)
+    points(T2[gr], LA2[gr], col = 1)
+    points(T0[gr], LA0[gr], col = 1)
     title(main="Lipid Age Comparison")
-    legend("topright", lty=c(1,2,1,2), col=c(1,1,2,2), legend=c("WR", "WR Prediction Interval", "WS", "WS Prediction Interval"), cex=0.7)
+    legend("topright", lty=c(1,1), col=c(1,2), legend=c("WR", "WS"), cex=0.7)
   }
   
 }
@@ -928,11 +935,19 @@ power.t.test(n=13, sd=sds, p=0.8)
 # SUP GRAPH #
 #############
 
-plot(T0, BMI0, ylim=c(20, 55), xlim=c(0, 2885))
-points(T2, BMI2)
-points(T5, BMI5)
+# plot(T0, BMI0, ylim=c(20, 55), xlim=c(0, 2885))
+# points(T2, BMI2)
+# points(T5, BMI5)
+# 
+# plot(soltime, allLA[,1], type="l", ylim=c(0, 2700))
+# for (k in 2:39){
+#   lines(soltime, allLA[,k])
+# }
 
-plot(soltime, allLA[,1], type="l", ylim=c(0, 2700))
-for (k in 2:39){
-  lines(soltime, allLA[,k])
-}
+# avLA()
+# points(T0[gs], LA0[gs], col = 2)
+# points(T2[gs], LA2[gs], col = 2)
+# points(T5[gs], LA5[gs], col = 2)
+# points(T5[gr], LA5[gr], col = 1)
+# points(T2[gr], LA2[gr], col = 1)
+# points(T0[gr], LA0[gr], col = 1)
