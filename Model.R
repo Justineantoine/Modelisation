@@ -162,7 +162,7 @@ EE2 <- function(t, EIi, EIs, EIf, k, h, a, FM, LM){
 ##############################
 K <- EI0 - gf*FM0 - gl*LM0 - d0
 K2 <- 5e-6
-K3 <- 2e-5
+K3 <- 2.702703e-05
 
 ################################
 # EDO SYSTEM : BW, LA AND Kout #
@@ -234,11 +234,11 @@ EqBWLA <- function(t, y, parameters){
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
   
-  kin <- K2 * EI(t, EIi, EIs, EIf)
+  #kin <- K2 * EI(t, EIi, EIs, EIf)
   
   #Bad model
-  # if (EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2])< 0){kin <- 0}
-  # else{kin <- K3*(EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))}
+  if (EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2])< 0){kin <- 0}
+  else{kin <- K3*(EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))}
   
   dF <- partF/pf * (EI(t, EIi, EIs, EIf) - EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dL <- partL/pl * (EI(t, EIi, EIs, EIf) - EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))
@@ -494,6 +494,7 @@ write.csv(cbind(EI0, EIsurg, EIfinal, EI0-EIfinal), file = "Intakes.csv")
 write.csv(cbind(LAdata, Delta = LAdata[,1]-LAdata[,3]), file = "LipidAge.csv")
 write.csv(cbind(Koutdata, Delta = Koutdata[,1]-Koutdata[,3]), file = "Kout.csv")
 write.csv(cbind(K2*EI0, K2*EIsurg, K2*EIfinal, K2*(EI0-EIfinal)), file = "Kin.csv")
+
 ####################
 # AVERAGE PATIENTS #
 ####################
