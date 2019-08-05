@@ -234,11 +234,11 @@ EqBWLA <- function(t, y, parameters){
   partF <- y[1]/(C+y[1])
   partL <- 1-partF
   
-  #kin <- K2 * EI(t, EIi, EIs, EIf)
+  kin <- K2 * EI(t, EIi, EIs, EIf)
   
   #Bad model
-  if (EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2])< 0){kin <- 0}
-  else{kin <- K3*(EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))}
+  #if (EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2])< 0){kin <- 0}
+  #else{kin <- K3*(EI(t, EIi, EIs, EIf)-EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))}
   
   dF <- partF/pf * (EI(t, EIi, EIs, EIf) - EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))
   dL <- partL/pl * (EI(t, EIi, EIs, EIf) - EE(t, EIi, EIs, EIf, k, h, a, y[1], y[2]))
@@ -267,10 +267,10 @@ EqKout <- function(parameters,fit){
     
     kin <- K2 * EI(i, EIi, EIs, EIf)
     
-    # if (EI(i, EIi, EIs, EIf) - EE(i, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3])< 0){kin <- 0}
-    # else{kin <- K3*(EI(i, EIi, EIs, EIf) - EE(i, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3]))}
+    #if (EI(i, EIi, EIs, EIf) - EE(i, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3])< 0){kin <- 0}
+    #else{kin <- K3*(EI(i, EIi, EIs, EIf) - EE(i, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3]))}
     
-    # kin <- fit[i+1,2]/A0
+    #kin <- fit[i+1,2]/A0
     
     dF <- partF/pf * (EI(i, EIi, EIs, EIf) - EE(i, EIi, EIs, EIf, k, h, a, fit[i+1,2], fit[i+1,3]))
     Kout <- c(Kout, unname((kin - dF)/fit[i+1,2]))
@@ -460,30 +460,20 @@ allKout <- tables[[4]]
 interPlots <- function(){
   #' Plots the Kout and Lipid Age of each patient.
   plot(soltime, allKout[,1], type ="l", xlab="Days", ylab="Kout (/d)", ylim=c(0.0002, 0.004))
-  for (i in 1:39){
-    if (i > length(gr)){
-        lines(soltime, allKout[,i], col=2)
-    }
-    else{
+  for (i in 2:39){
       lines(soltime, allKout[,i])
-    }
-    
   }
   title(main="Kout for all patients")
   legend("topright", legend=c("Rebounders", "Weight stable"), lty=c(1,1), col=c(1,2))
   
-  plot(soltime, allLA[,1], type ="l", xlab="Days", ylab="Lipid Age (d)", ylim=c(0, 2700))
-  for (i in 1:39){
-    if (i > length(gr)){
-      lines(soltime, allLA[,i], col=2)
-    }
-    else{
+  plot(soltime, allLA[,1], type ="l", xlab="Days", ylab="Lipid Age (d)", ylim=c(0, 5000))
+  for (i in 2:39){
       lines(soltime, allLA[,i])
-    }
-    
   }
+  points(T5, LA5, col = 1)
+  points(T2, LA2, col = 1)
+  points(T0, LA0, col = 1)
   title(main="Lipid Age for all patients")
-  legend("topright", legend=c("Rebounders", "Weight stable"), lty=c(1,1), col=c(1,2))
 }
 
     
@@ -813,6 +803,12 @@ avLA <- function(superposition = T)
     points(T5[gr], LA5[gr], col = 1)
     points(T2[gr], LA2[gr], col = 1)
     points(T0[gr], LA0[gr], col = 1)
+    points(mean(T0[gs]), mean(LA0[gs]), col = 2, pch=17, cex=1.5)
+    points(mean(T2[gs]), mean(LA2[gs]), col = 2, pch=17, cex=1.5)
+    points(mean(T5[gs]), mean(LA5[gs]), col = 2, pch=17, cex=1.5)
+    points(mean(T5[gr]), mean(LA5[gr]), col = 1, pch=17, cex=1.5)
+    points(mean(T2[gr]), mean(LA2[gr]), col = 1, pch=17, cex=1.5)
+    points(mean(T0[gr]), mean(LA0[gr]), col = 1, pch=17, cex=1.5)
     title(main="Lipid Age Comparison")
     legend("topright", lty=c(1,1), col=c(1,2), legend=c("WR", "WS"), cex=0.7)
   }
